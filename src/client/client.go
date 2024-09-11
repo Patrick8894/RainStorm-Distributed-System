@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"fmt"
 	// "os"
@@ -9,33 +8,56 @@ import (
 	"strings"
 )
 
-func main (){
-	
+func main() {
 
-	conn, err = net.Listen("tcp")
+	ln, err := net.Listen("tcp", "localhost:8080")
 
+	if err != nil {
+		fmt.Println("Error in connection")
+		return
+	}
 
-	// file, err := os.Open(data+"/"+file_name)
-	
-	// if err != nil {
-	// 	fmt.Println("Did not open the file successfully");
-	// 	return 
-	// }
+	defer ln.Close()
 
-	// defer file.Close()
+	fmt.Println("Client is listening")
 
-	fmt.Println("finished client running");
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println("Error in connection")
+			return
+		}
+		go handleConnection(conn)
+		// grep_function("log", "../../data/vm1.log")
+	}
 
 }
 
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
 
-func grep_function (){
+	// read the pattern from the server
+	pattern := make([]byte, 1024)
+	_, err := conn.Read(pattern)
 
-	pattern := "log";
-	file_path := "../../data/vm1.log";
+	if err != nil {
+		fmt.Println("Error in reading the pattern")
+		return
+	}
 
+	fmt.Println("Pattern received from client:", string(pattern))
+
+	// send the response to the client
+	grep_result := grep_function(string(pattern), "../../data/vm1.log")
+
+	conn.Write([]byte(grep_result))
+}
+
+func grep_function(pattern string, file_path string) string {
 
 	cmd := exec.Command("grep", "-cH", pattern, file_path)
+
+	fmt.Println("Command to execute:", cmd)
 
 	var out strings.Builder
 
@@ -43,9 +65,10 @@ func grep_function (){
 
 	err := cmd.Run()
 
-	if err != nil{
+	if err != nil {
 		fmt.Printf("Grep Command execution error %q", err)
 	}
 
 	fmt.Printf("%q\n", out.String())
+	return out.String()
 }
