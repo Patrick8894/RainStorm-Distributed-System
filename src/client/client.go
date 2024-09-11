@@ -55,7 +55,11 @@ func handleConnection(conn net.Conn) {
 
 func grep_function(pattern string, file_path string) string {
 
-	cmd := exec.Command("grep", "-cH", pattern, file_path)
+	// grep -cH pattern file_path
+	// cmd := exec.Command("bash", "-c", "grep -cH "+pattern+" "+file_path)
+	// cmd := exec.Command("grep", "-cH", pattern, file_path)
+	// sill some error here
+	cmd := exec.Command("grep", "-cH", "log", "../../data/vm1.log")
 
 	fmt.Println("Command to execute:", cmd)
 
