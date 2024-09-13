@@ -16,14 +16,14 @@ hosts=(
 )
 
 # Directory where the repo is located on remote machines
-repo_dir="cs425g66/src"
+repo_dir="cs425g66/mp1"
 
 # Command to run on each host
 for host in "${hosts[@]}"; do
   echo "Connecting to $host"
   
   # SSH into each host and run git pull
-  ssh "$host" "cd $repo_dir && go build receiver.go && go build sender.go && ./receiver &"
+  ssh "$host" "cd $repo_dir && go build receiver.go && go build sender.go && ./src/receiver 01 > /dev/null 2>&1 &"
   
   echo "Done with $host"
 done

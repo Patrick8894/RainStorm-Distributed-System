@@ -74,7 +74,7 @@ func handleConnection(conn net.Conn, filenameSuffix string) {
     fmt.Printf("Received data: %s\n", data.String())
 
     // Construct the file name using the provided filename suffix
-    fileName := fmt.Sprintf("vm%s.log", filenameSuffix)
+    fileName := fmt.Sprintf("data/vm%s.log", filenameSuffix)
 
     // Split the received data into grep options
     grepOptions := strings.Split(data.String(), "\n")
