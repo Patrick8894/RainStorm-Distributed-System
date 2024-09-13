@@ -37,7 +37,11 @@ for host in "${hosts[@]}"; do
         echo \"No process found on port \${PORT}.\"
     fi
     
-    cd $repo_dir && go build receiver.go && go build sender.go && ./src/receiver 01 > /dev/null 2>&1 &
+    cd $repo_dir
+    go build src/receiver.go
+    go build src/sender.go
+    echo "Running receiver..."
+    nohup ./src/receiver 01 > /dev/null 2>&1 &
   "
   
   echo "Done with $host"
