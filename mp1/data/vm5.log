@@ -1,0 +1,6 @@
+92.252.21.169 - - [17/Aug/2022:20:06:40 -0500] "GET /app/main/posts HTTP/1.0" 200 5051 "http://wagner-castillo.com/wp-content/author/" "Mozilla/5.0 (Macintosh; PPC Mac OS X 10_6_7; rv:1.9.2.20) Gecko/2018-01-10 21:06:13 Firefox/3.6.10"
+102.45.246.170 - - [17/Aug/2022:20:07:32 -0500] "DELETE /list HTTP/1.0" 200 4937 "http://gomez.com/posts/posts/homepage.html" "Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_7_7; rv:1.9.2.20) Gecko/2012-08-16 23:12:16 Firefox/3.6.15"
+120.81.183.143 - - [17/Aug/2022:20:11:52 -0500] "POST /wp-content HTTP/1.0" 200 5010 "http://www.davis.com/login.asp" "Mozilla/5.0 (Windows; U; Windows 98) AppleWebKit/531.40.2 (KHTML, like Gecko) Version/5.1 Safari/531.40.2"
+102.229.10.198 - - [17/Aug/2022:20:12:33 -0500] "GET /apps/cart.jsp?appID=6745 HTTP/1.0" 200 5042 "http://www.ramirez.biz/tag/home.html" "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_1; rv:1.9.3.20) Gecko/2016-05-18 04:26:46 Firefox/6.0"
+101.15.172.82 - - [17/Aug/2022:20:15:33 -0500] "GET /wp-admin HTTP/1.0" 200 5065 "http://wagner-sanders.com/posts/terms/" "Mozilla/5.0 (Windows NT 5.0; it-IT; rv:1.9.1.20) Gecko/2020-03-10 11:56:15 Firefox/13.0"
+186.245.40.102 - - [17/Aug/2022:20:17:30 -0500] "DELETE /wp-content HTTP/1.0" 404 4967 "http://lloyd-burnett.com/explore/category/" "Mozilla/5.0 (Windows NT 4.0; sl-SI; rv:1.9.1.20) Gecko/2015-09-13 05:45:02 Firefox/3.6.16"
