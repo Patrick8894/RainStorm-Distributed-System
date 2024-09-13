@@ -42,7 +42,7 @@ for host in "${hosts[@]}"; do
     go build sender.go
     cd ..
     echo "Running receiver..."
-    nohup ./src/receiver 01 > /dev/null 2>&1 &
+    nohup ./src/receiver > /dev/null 2>&1 &
   "
   
   echo "Done with $host"
