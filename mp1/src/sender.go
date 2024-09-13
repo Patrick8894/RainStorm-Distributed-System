@@ -12,7 +12,7 @@ import (
 
 func main() {
     // Base domain name pattern
-    baseDomain := "fa24-cs425-66%02d.cs.illinois.edu"
+    baseDomain := "fa24-cs425-66%s.cs.illinois.edu"
     start := 1
     end := 10
 
@@ -22,7 +22,13 @@ func main() {
     // Generate the list of domain names
     var ipAddresses []string
     for i := start; i <= end; i++ {
-        ipAddresses = append(ipAddresses, fmt.Sprintf(baseDomain, i))
+        var formattedNumber string
+        if i < 10 {
+            formattedNumber = fmt.Sprintf("%d", i)
+        } else {
+            formattedNumber = fmt.Sprintf("%02d", i)
+        }
+        ipAddresses = append(ipAddresses, fmt.Sprintf(baseDomain, formattedNumber))
     }
 
     // ipAddresses = []string{"localhost"}
