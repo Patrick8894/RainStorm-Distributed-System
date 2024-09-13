@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 )
 
 func main() {
@@ -15,10 +16,6 @@ func main() {
 	// file_name (string), line(int)
 
 	// detect whether input number of client machine
-	// if len(os.Args) < 2 {
-	// 	fmt.Println("Wrong argument input length")
-	// 	return
-	// }
 
 	conn, err := net.Dial("tcp", "localhost:8080")
 
@@ -36,5 +33,4 @@ func main() {
 	// get the response from the client
 	messages, err := bufio.NewReader(conn).ReadString('\n')
 	fmt.Println(messages)
-
 }

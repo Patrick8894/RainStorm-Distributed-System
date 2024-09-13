@@ -37,8 +37,9 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	// read the pattern from the server
-	pattern := make([]byte, 1024)
-	_, err := conn.Read(pattern)
+	reader := bufio.NewReader(conn)
+
+	pattern, err := reader.ReadBytes('\n')
 
 	if err != nil {
 		fmt.Println("Error in reading the pattern")
