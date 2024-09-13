@@ -22,8 +22,23 @@ repo_dir="cs425g66/mp1"
 for host in "${hosts[@]}"; do
   echo "Connecting to $host"
   
-  # SSH into each host and run git pull
-  ssh "$host" "cd $repo_dir && go build receiver.go && go build sender.go && ./src/receiver 01 > /dev/null 2>&1 &"
+  # SSH into each host, check for existing process, kill it if found, and run new commands
+  ssh "$host" "
+    PORT=8080
+    PID=\$(lsof -t -i :\${PORT})
+    
+    # If a PID is found, kill the process
+    if [ ! -z \"\$PID\" ]; then
+        echo \"Stopping old server with PID \$PID...\"
+        kill \$PID
+        # If needed, force kill
+        # sudo kill -9 \$PID
+    else
+        echo \"No process found on port \${PORT}.\"
+    fi
+    
+    cd $repo_dir && go build receiver.go && go build sender.go && ./src/receiver 01 > /dev/null 2>&1 &
+  "
   
   echo "Done with $host"
 done
