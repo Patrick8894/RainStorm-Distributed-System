@@ -16,7 +16,7 @@ hosts=(
 )
 
 # Directory where the repo is located on remote machines
-repo_dir="cs425g66/mp1"
+repo_dir="cs425g66/mp1/src"
 
 # Command to run on each host
 for host in "${hosts[@]}"; do
@@ -38,8 +38,9 @@ for host in "${hosts[@]}"; do
     fi
     
     cd $repo_dir
-    go build src/receiver.go
-    go build src/sender.go
+    go build receiver.go
+    go build sender.go
+    cd ..
     echo "Running receiver..."
     nohup ./src/receiver 01 > /dev/null 2>&1 &
   "
