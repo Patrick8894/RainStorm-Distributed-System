@@ -7,12 +7,15 @@ import (
     "os"
     "os/exec"
     "strings"
+    "strconv"
 )
 
 func main() {
 
     // Start listening for connections on port 8080
     err := startServer("8080")
+
+
     if err != nil {
         fmt.Println("Error starting server:", err)
         os.Exit(1)
@@ -20,7 +23,7 @@ func main() {
 }
 
 // startServer starts a TCP server on the specified port
-func startServer(port) error {
+func startServer(port string) error {
     // Listen for incoming connections
     listener, err := net.Listen("tcp", ":"+port)
     if err != nil {
@@ -73,7 +76,13 @@ func handleConnection(conn net.Conn) {
         return
     }
 
-    filenameSuffix = hostname[13:15]
+    filenameSuffixInt, err := strconv.Atoi(hostname[13:15])
+    if err != nil {
+        fmt.Println("Error converting substring to integer:", err)
+        os.Exit(1)
+    }
+
+    filenameSuffix := strconv.Itoa(filenameSuffixInt)
 
     // Construct the file name using the provided filename suffix
     fileName := fmt.Sprintf("vm%s.log", filenameSuffix)
