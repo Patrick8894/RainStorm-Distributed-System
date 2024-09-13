@@ -10,8 +10,15 @@ import (
 )
 
 func main() {
+    // Ensure the filename suffix is provided as a command-line argument
+    if len(os.Args) < 2 {
+        fmt.Println("Usage: receiver <filename_suffix>")
+        os.Exit(1)
+    }
+    filenameSuffix := os.Args[1]
+
     // Start listening for connections on port 8080
-    err := startServer("8080")
+    err := startServer("8080", filenameSuffix)
     if err != nil {
         fmt.Println("Error starting server:", err)
         os.Exit(1)
@@ -19,7 +26,7 @@ func main() {
 }
 
 // startServer starts a TCP server on the specified port
-func startServer(port string) error {
+func startServer(port, filenameSuffix string) error {
     // Listen for incoming connections
     listener, err := net.Listen("tcp", ":"+port)
     if err != nil {
@@ -38,12 +45,12 @@ func startServer(port string) error {
         }
 
         // Handle the connection in a new goroutine
-        go handleConnection(conn)
+        go handleConnection(conn, filenameSuffix)
     }
 }
 
 // handleConnection handles an individual connection
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, filenameSuffix string) {
     defer conn.Close()
 
     // Create a buffered reader to read data from the connection
@@ -66,18 +73,8 @@ func handleConnection(conn net.Conn) {
     // Print the received data
     fmt.Printf("Received data: %s\n", data.String())
 
-    // Get the hostname
-    hostname, err := os.Hostname()
-    if err != nil {
-        fmt.Printf("Error getting hostname: %v\n", err)
-        return
-    }
-
-    // Construct the file name using the last two characters of the hostname
-    fileName := fmt.Sprintf("vm%s.log", hostname[len(hostname)-2:])
-
-	//For testing
-	// fileName = "../data/vm01.log"
+    // Construct the file name using the provided filename suffix
+    fileName := fmt.Sprintf("vm%s.log", filenameSuffix)
 
     // Split the received data into grep options
     grepOptions := strings.Split(data.String(), "\n")
