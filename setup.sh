@@ -23,7 +23,7 @@ for host in "${hosts[@]}"; do
   echo "Connecting to $host"
   
   # SSH into each host and run git pull
-  ssh "$host" "cd $repo_dir && go build receiver.go && go build sender.go"
+  ssh "$host" "cd $repo_dir && go build receiver.go && go build sender.go && ./receiver.go"
   
   echo "Done with $host"
 done

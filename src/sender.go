@@ -14,7 +14,7 @@ func main() {
     // Base domain name pattern
     baseDomain := "fa24-cs425-66%02d.cs.illinois.edu"
     start := 1
-    end := 1
+    end := 10
 
     // Wrap command-line arguments with '\n' as delimiter and '\0' at the end
     args := strings.Join(os.Args[1:], "\n") + "\x00"
@@ -25,7 +25,7 @@ func main() {
         ipAddresses = append(ipAddresses, fmt.Sprintf(baseDomain, i))
     }
 
-	ipAddresses = []string{"localhost"}
+    // ipAddresses = []string{"localhost"}
 
     // Use a WaitGroup to wait for all goroutines to finish
     var wg sync.WaitGroup
