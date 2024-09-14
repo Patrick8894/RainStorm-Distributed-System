@@ -3,3 +3,4 @@ receiver
 test_vm?.log
 test_vm??.log
 out.log
+data/*
