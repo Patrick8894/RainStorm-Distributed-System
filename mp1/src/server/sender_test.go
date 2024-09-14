@@ -26,7 +26,6 @@ func TestOneMahine( t *testing.T){
 	args += "\x00"
 	go connectAndSend(ip, 1, args, &wg, responses)
 	wg.Wait()
-	
 	// get local result
     // Execute the grep command
     cmd := exec.Command("grep", test_args...)
@@ -58,7 +57,7 @@ func TestAllMachine( t *testing.T){
 		// Use Sprintf to embed the integer into a string
 		file_path := fmt.Sprintf("../../data/test_vm%d.log", i)
 		test_args := []string {"-c", "GET", file_path}
-		ip := fmt.Sprintf("fa24-cs425-66%02d.cs.illinois.edu", i)
+		ip := fmt.Sprintf("fa24-cs425-66%02d.cs.illinois.edu", i + 1)
 
 		args := strings.Join(test_args, "\n")
 		// get distributed result
@@ -68,7 +67,6 @@ func TestAllMachine( t *testing.T){
 		go connectAndSend(ip, i, args, &wg, responses)
 	}
 	wg.Wait()
-
 
 	local_responses := make([]string, 10)
 	// get local result
@@ -83,7 +81,6 @@ func TestAllMachine( t *testing.T){
 	
 		local_responses[i] = string(output)
 	}
-
 
 	// Compare the result
 	if reflect.DeepEqual(responses , local_responses) == false {
