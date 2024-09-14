@@ -15,19 +15,17 @@ import (
 func TestOneMahine( t *testing.T){
 	// Test one machine and compare the grep's result
 
-	test_args := []string {"-c", "GET", "\n", "../../data/test_vm2.log"}
+	test_args := []string {"-c", "GET", "../../data/test_vm1.log"}
 	args := strings.Join(test_args, "\n")
 	// get distributed result
 	var wg sync.WaitGroup
-	responses := make([]string, 3)
+	responses := make([]string, 10)
 	wg.Add(1)
-	// ip := "fa24-cs425-6602.cs.illinois.edu"
-	ip := "localhost"
+	ip := "fa24-cs425-6602.cs.illinois.edu"
+	// ip := "localhost"
 	args += "\x00"
-	go connectAndSend(ip, 2, args, &wg, responses)
+	go connectAndSend(ip, 1, args, &wg, responses)
 	wg.Wait()
-
-	fmt.Println(responses)
 	
 	// get local result
     // Execute the grep command
@@ -38,9 +36,10 @@ func TestOneMahine( t *testing.T){
     }
 
     // Send the grep output back to the client
-    local_responses := string(output) + "\x00"
+	local_responses := make([]string, 10)
+    local_responses[1] = string(output)
 
-	if reflect.DeepEqual(responses[1], local_responses) == false {
+	if reflect.DeepEqual(responses , local_responses) == false {
 		t.Errorf("Remote Output %+v is not equal to Local Expected Output %+v", responses, local_responses)
 	}
 
