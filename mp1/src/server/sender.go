@@ -15,10 +15,10 @@ func main() {
     // Base domain name pattern
     baseDomain := "fa24-cs425-66%02d.cs.illinois.edu"
     start := 1
-    end := 10
+    end, _ := strconv.Atoi(os.Args[1])
 
     // Wrap command-line arguments with '\n' as delimiter and '\0' at the end
-    args := strings.Join(os.Args[1:], "\n")
+    args := strings.Join(os.Args[2:], "\n")
 
     // Generate the list of domain names
     var ipAddresses []string
