@@ -38,3 +38,11 @@
     ```sh
     ./sender -cH "00"
     ```
+
+
+###  Testing
+1. Generate test log file
+10000 is the argument for number of random lines
+```
+python3 generator.py 10000
+```

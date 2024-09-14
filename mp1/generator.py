@@ -1,8 +1,8 @@
 import sys
 import random
 
-random.seed(int(sys.argv[1]))
-print("Seed:", int(sys.argv[1]))
+random.seed(10)
+
 
 # Function to generate fixed data
 def fixed_data():
@@ -67,7 +67,7 @@ def generate_log_entry():
 for i in range(10):
     with open(f"data/test_vm{i+1}.log", "w") as log_file:
         log_file.write(fixed_data() + "\n")
-        for j in range(10):
+        for j in range(int(sys.argv[1])):
             log_file.write(generate_log_entry() + "\n")
 
-print("Log file generated successfully.")
+print(f"Log file generated new random line {int(sys.argv[1])} successfully.")
