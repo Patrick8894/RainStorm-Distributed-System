@@ -24,25 +24,22 @@ for host in "${hosts[@]}"; do
   
   # SSH into each host, check for existing process, kill it if found, and run new commands
   ssh "$host" "
-    PORT=8080
-    PID=\$(lsof -t -i :\${PORT})
-    
-    # If a PID is found, kill the process
-    if [ ! -z \"\$PID\" ]; then
-        echo \"Stopping old server with PID \$PID...\"
-        kill \$PID
-        # If needed, force kill
-        # sudo kill -9 \$PID
+    tmux has-session -t receiver_session 2>/dev/null
+    if [ $? == 0 ]; then
+      echo "Stopping existing tmux session 'receiver_session'..."
+      tmux kill-session -t receiver_session
     else
-        echo \"No process found on port \${PORT}.\"
+        echo "No existing tmux session 'receiver_session' found."
     fi
     
     cd $repo_dir
-    go build receiver.go
+    cd server
     go build sender.go
     cd ..
+    cd client
+    go build receiver.go
     echo "Running receiver..."
-    nohup ./src/receiver > /dev/null 2>&1 &
+    tmux new-session -d -s receiver_session './receiver'
   "
   
   echo "Done with $host"
