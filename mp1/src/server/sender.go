@@ -35,6 +35,10 @@ func main() {
     // Iterate over the list of IP addresses
     for idx, ipAddress := range ipAddresses {
         wg.Add(1)
+        filenameSuffix := strconv.Itoa(idx + 1)
+        fileName := fmt.Sprintf("../../data/test_vm%s.log", filenameSuffix)
+    
+        args += "\n" + fileName + "\x00"
         go connectAndSend(ipAddress, idx, args, &wg, responses)
     }
 
@@ -59,10 +63,7 @@ func connectAndSend(ip string, idx int, data string, wg *sync.WaitGroup, respons
     }
     defer conn.Close()
 
-    filenameSuffix := strconv.Itoa(idx + 1)
-    fileName := fmt.Sprintf("data/test_vm%s.log", filenameSuffix)
 
-    data += "\n" + fileName + "\x00"
 
     // Send the wrapped command-line arguments through the socket
     _, err = conn.Write([]byte(data))
