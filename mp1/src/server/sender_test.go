@@ -51,23 +51,24 @@ func TestAllMachine( t *testing.T){
 	/*
 	Test all machines and compare the grep's result from machine 1
 	*/
-	ip := "fa24-cs425-6602.cs.illinois.edu"
+	
 	responses := make([]string, 10)
-
+	var wg sync.WaitGroup
 	for i := 1; i < 10; i++ {
 		// Use Sprintf to embed the integer into a string
 		file_path := fmt.Sprintf("../../data/test_vm%d.log", i)
 		test_args := []string {"-c", "GET", file_path}
+		ip := fmt.Sprintf("fa24-cs425-66{%2d}.cs.illinois.edu", i)
 
 		args := strings.Join(test_args, "\n")
 		// get distributed result
-		var wg sync.WaitGroup
 		wg.Add(1)
 		// ip := "localhost"
 		args += "\x00"
 		go connectAndSend(ip, i, args, &wg, responses)
-		wg.Wait()
 	}
+	wg.Wait()
+
 
 	local_responses := make([]string, 10)
 	// get local result
