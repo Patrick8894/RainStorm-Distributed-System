@@ -58,7 +58,7 @@ func TestAllMachine( t *testing.T){
 		// Use Sprintf to embed the integer into a string
 		file_path := fmt.Sprintf("../../data/test_vm%d.log", i)
 		test_args := []string {"-c", "GET", file_path}
-		ip := fmt.Sprintf("fa24-cs425-66{%2d}.cs.illinois.edu", i)
+		ip := fmt.Sprintf("fa24-cs425-66%2d.cs.illinois.edu", i)
 
 		args := strings.Join(test_args, "\n")
 		// get distributed result
