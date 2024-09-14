@@ -7,7 +7,6 @@ import (
     "os"
     "os/exec"
     "strings"
-    "strconv"
 )
 
 func main() {
@@ -67,34 +66,11 @@ func handleConnection(conn net.Conn) {
         data.WriteByte(b)
     }
 
-    // Print the received data
-    fmt.Printf("Received data: %s\n", data.String())
-
-    hostname, err := os.Hostname()
-    if err != nil {
-        fmt.Println("Error getting hostname:", err)
-        return
-    }
-
-    filenameSuffixInt, err := strconv.Atoi(hostname[13:15])
-    if err != nil {
-        fmt.Println("Error converting substring to integer:", err)
-        os.Exit(1)
-    }
-
-    filenameSuffix := strconv.Itoa(filenameSuffixInt)
-
-    // Construct the file name using the provided filename suffix
-    fileName := fmt.Sprintf("data/vm%s.log", filenameSuffix)
-
     // Split the received data into grep options
     grepOptions := strings.Split(data.String(), "\n")
 
-    // Prepare the arguments for the grep command
-    args := append(grepOptions, fileName)
-
     // Execute the grep command
-    cmd := exec.Command("grep", args...)
+    cmd := exec.Command("grep", grepOptions...)
     output, err := cmd.CombinedOutput()
     if err != nil {
         fmt.Printf("Error executing grep: %v\n", err)
