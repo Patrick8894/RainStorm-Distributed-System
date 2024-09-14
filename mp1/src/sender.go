@@ -60,7 +60,7 @@ func connectAndSend(ip string, idx int, data string, wg *sync.WaitGroup, respons
     defer conn.Close()
 
     filenameSuffix := strconv.Itoa(idx + 1)
-    fileName := fmt.Sprintf("data/machine.%s.log", filenameSuffix)
+    fileName := fmt.Sprintf("data/test_vm%s.log", filenameSuffix)
 
     data += "\n" + fileName + "\x00"
 
