@@ -30,19 +30,28 @@
 4. **Run the Sender**:
     - Navigate to the `src` directory and run the `sender` with any supported options of the `grep` command to match a pattern. Noted that you don't need to provide filename like in `grep`. You will see the output from all machine:
     ```sh
-    cd src
-    ./sender <grep-options> <grep-pattern>
+    cd src/client
+    ./sender <number-of-machine-to-connect> <grep-options> <grep-pattern>
     ```
 
     - Example:
     ```sh
-    ./sender -cH "00"
+    ./sender 4 -cH "00"
     ```
 
 
 ###  Testing
 1. Generate test log file
 10000 is the argument for number of random lines
-```
-python3 generator.py 10000
-```
+    ```
+    python3 generator.py 10000
+    ```
+2. Navigate to sender directory
+    ```sh
+    cd src/client
+    ```
+3. run go test
+    ```sh
+    go test
+    ```
+

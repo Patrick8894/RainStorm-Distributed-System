@@ -38,9 +38,9 @@ for host in "${hosts[@]}"; do
     fi
     
     cd $repo_dir
-    cd server
+    cd client
     go build sender.go
-    cd ../client
+    cd ../server
     go build receiver.go
     echo "Running receiver..."
     nohup ./receiver > /dev/null 2>&1 &
