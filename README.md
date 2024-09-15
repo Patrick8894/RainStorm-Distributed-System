@@ -48,10 +48,10 @@
     ```
 2. Navigate to sender directory
     ```sh
-    cd src/client
+    cd mp1/src/client
     ```
-3. run go test
+3. run go test and watch detail
     ```sh
-    go test
+    go test -v
     ```
 
