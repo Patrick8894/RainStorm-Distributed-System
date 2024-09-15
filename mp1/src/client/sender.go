@@ -37,18 +37,26 @@ func main() {
         wg.Add(1)
         filenameSuffix := strconv.Itoa(idx + 1)
         fileName := fmt.Sprintf("../../data/vm%s.log", filenameSuffix)
-    
-        args += "\n" + fileName + "\x00"
-        go connectAndSend(ipAddress, idx, args, &wg, responses)
+        
+        data := args + "\n" + fileName + "\x00"
+        go connectAndSend(ipAddress, idx, data, &wg, responses)
     }
 
     // Wait for all goroutines to finish
     wg.Wait()
 
+    total_lines := 0
+
     // Print responses in order
     for _, response := range responses {
+        for _, c := range response {
+            if c == '\n' {
+                total_lines++
+            }
+        }
         fmt.Print(response)
     }
+    fmt.Printf("Total lines: %d\n", total_lines)
 }
 
 // connectAndSend attempts to establish a TCP connection to the given IP address,
