@@ -123,7 +123,7 @@ func TestAllMachine( t *testing.T){
 }
 
 
-func TestAllMachine( t *testing.T){
+func TestAllMachine_infrequent( t *testing.T){
 	/*
 	Test all machines and compare the grep's result from machine 1
 	*/
