@@ -149,7 +149,7 @@ func TestAllMachine_infrequent( t *testing.T){
 	// get local result
 	for i := 1; i < 10; i++ {
 		file_path := fmt.Sprintf("../../data/test_vm%d.log", i)
-		test_args := []string {"-c", "GET", file_path}
+		test_args := []string {"-H", "DELETE", file_path}
 		cmd := exec.Command("grep", test_args...)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
