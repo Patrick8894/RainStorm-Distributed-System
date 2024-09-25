@@ -36,7 +36,7 @@ func main() {
     for idx, ipAddress := range ipAddresses {
         wg.Add(1)
         filenameSuffix := strconv.Itoa(idx + 1)
-        fileName := fmt.Sprintf("../../data/vm%s.log", filenameSuffix)
+        fileName := fmt.Sprintf("../../data/mp2%s.log", filenameSuffix)
         
         data := args + "\n" + fileName + "\x00"
         go connectAndSend(ipAddress, idx, data, &wg, responses)
