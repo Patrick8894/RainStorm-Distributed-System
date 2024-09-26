@@ -80,7 +80,7 @@ func main(){
 }
 
 func dialIntroducer() {
-    // Implement the logic to dial the introducer and get the list of nodes
+    // TODO: implement the logic to dial the introducer and get the list of nodes
     fmt.Println("Dialing introducer...")
 }
 
@@ -110,6 +110,7 @@ func startServer() {
         } else if strings.HasPrefix(message, "RELAY") {
             // TODO: Relay the message to the target node
         } else if strings.HasPrefix(message, "JOIN") {
+			if not Introducer continue
 			NodesMutex.Lock()
             // TODO: Add the new node to the list of nodes
             NodesMutex.Unlock()
@@ -132,7 +133,11 @@ func startClient() {
     }
 	NodesMutex.Unlock()
 
-	ticker := time.NewTicker(PROTOCOL_PERIOD * time.Second) // Ping every 5 seconds
+	rand.Shuffle(len(nodesArray), func(i, j int) {
+		nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
+	})
+
+	ticker := time.NewTicker(PROTOCOL_PERIOD * time.Second) // Ping every PROTOCOL_PERIOD seconds
     defer ticker.Stop()
 
 	for {
@@ -169,7 +174,7 @@ func pingServer(address string) {
     // TODO: Send a PING message to the server
 
     // Set a read deadline for the response
-    conn.SetReadDeadline(time.Now().Add(3 * TIMEOUT_PERIOD * time.Second))
+    conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
 
     buffer := make([]byte, 1024)
     n, err := conn.Read(buffer)
