@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package swim;
+
+option go_package = "mp2/proto";
+
+// SWIMMessage defines the types of messages exchanged between nodes
+message SWIMMessage {
+  enum MessageType {
+    PING = 0;
+    PONG = 1;
+    GOSSIP = 2;
+  }
+
+  MessageType type = 1;
+  string sender = 2;
+  string target = 3;
+  repeated MembershipInfo membership = 4; // For gossiping membership info
+}
+
+// MembershipInfo stores information about a node in the cluster
+message MembershipInfo {
+  string address = 1;
+  string status = 2; // Can be "Alive", "Suspected", or "Failed"
+}
