@@ -18,7 +18,7 @@ func mapState(state global.State) pb.MembershipInfo_State {
     case global.Down:
         return pb.MembershipInfo_Down
 	case global.Join:
-        return pb.MembershpInfo_Join // Default case
+        return pb.MembershipInfo_Join // Default case
 	default:
 		return pb.MembershipInfo_Suspected
     }
@@ -52,7 +52,7 @@ func get_nodelist(Nodes map[string]global.NodeInfo) []*pb.MembershipInfo {
 }
 
 // Corrected function to send a message
-func send_message(conn net.Conn, addr net.Addr, message *pb.SWIMMessage) {
+func send_message(conn net.Conn, addr net.Addr, message *pb.SWIMMessage) () {
     data, err := proto.Marshal(message)
     if err != nil {
         fmt.Printf("Failed to marshal message: %v\n", err)
