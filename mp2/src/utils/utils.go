@@ -1,19 +1,25 @@
+package utils
 import ( 
 	pb "mp2/proto"
-	"mp2/src/gloabl"
+	"mp2/src/global"
+	"fmt"
+	"net"
+	"google.golang.org/protobuf/proto"
 )
 
 func get_gossiplist (GosssipNodes make(map[string]GossipNode)) []*pb.MembershipInfo {
-	gossipNodelist := [] *pb.MembershipInfo{
-		for _, GossipNode := range GossipNodes {
-			{
-				memberID: GossipNode.ID,
-				memberAddress: GossipNode.Address,
-				memberState: GossipNode.State,
-				memberIncarnation: GossipNode.Incarnation,
-			},
-	}
-	return gossipNodelist
+	gossipNodelist := [] *pb.MembershipInfo{}
+
+	for _, GossipNode := range GossipNodes {
+        gossipNodelist = append(gossipNodelist, &pb.MembershipInfo{
+            MemberID:          GossipNode.ID,
+            MemberAddress:     GossipNode.Address,
+            MemberState:       GossipNode.State,
+            MemberIncarnation: GossipNode.Incarnation,
+        })
+    }
+	
+	return gossipNodelist	
 }
 
 func get_nodelist (Nodes make(map[string]NodeInfo)) []*pb.MembershipInfo {
@@ -24,10 +30,10 @@ func get_nodelist (Nodes make(map[string]NodeInfo)) []*pb.MembershipInfo {
 				memberAddress: Node.Address,
 				memberState: Node.State,
 			},
-	}
+		}
+	}	
 	return nodelist
-}	
-
+}
 
 func send_message (conn net.Conn, addr net.Addr, message *pb.SWIMMessage) {
 	data, err := proto.Marshal(message)

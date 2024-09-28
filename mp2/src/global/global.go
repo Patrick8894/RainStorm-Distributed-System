@@ -1,4 +1,9 @@
+package global
 // Defince the global variables and structs for SWIM protocol
+import (
+    "sync"
+    "time"
+)
 
 // Define the struct for the map values
 type NodeInfo struct {
