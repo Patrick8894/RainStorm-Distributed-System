@@ -1,6 +1,7 @@
 package main
 
 import (
+    "encoding/json"
 	"flag"
     "fmt"
 	"math/rand"
@@ -119,7 +120,12 @@ func dialIntroducer() {
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_JOIN,
         Sender: SelfAddress,
-        Target: INTRODUCER_ADDRESS
+        Target: INTRODUCER_ADDRESS,
+        MembershipInfo: []*pb.MembershipInfo{
+            {
+                memberID: Id,
+            },
+        },
     }
 
     data, err := proto.Marshal(message)
@@ -139,31 +145,23 @@ func dialIntroducer() {
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
 
-    buffer := make([]byte, 1024)
+    buffer := make([]byte, 4096)
     n, err := conn.Read(buffer)
     if err != nil {
         fmt.Println("No response from introducer:", err)
         return
     }
 
-    var message pb.SWIMMessage
-    err = proto.Unmarshal(buffer[:n], &message)
+    var message map[string]NodeInfo
+    err := json.Unmarshal(buffer[:n], &message)
     if err != nil {
         fmt.Println("Failed to unmarshal message:", err)
         return
     }
 
     NodesMutex.Lock()
-    for _, member := range message.Membership {
-        if member.Status == "Alive" {
-            Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
-        }
-        else member.Status == "Suspected" {
-            Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Suspected}
-        }
-    }
+    nodes = message
     NodesMutex.Unlock()
-
 }
 
 func startServer() {
@@ -258,16 +256,22 @@ func startServer() {
 			if not Introducer continue
 			NodesMutex.Lock()
             // Add the new node to the list of nodes
-            for _, member := range message.Membership {
-                if member.Status == "Alive" {
-                    Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
-                }
-                else member.Status == "Suspected" {
-                    Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Suspected}
-                }
+            Nodes[message.sender] = NodeInfo{ID: message.membership[0].memberID , Address: message.sender, State: Alive}
+            
+            jsonData, err := json.Marshal(Nodes)
+            if err != nil {
+                fmt.Println("Error serializing data:", err)
+                os.Exit(1)
             }
-
             NodesMutex.Unlock()
+            _, err = conn.WriteTo(jsonData, addr)
+            if err != nil {
+                fmt.Println("Failed to response to JOIN message:", err)
+                return
+            }
+            GossipNodesMutex.Lock()
+            GossipNodes[message.membership[0].memberID] = {ID: Membership.memberID, Address: Membership.memberAddress, State: Join, Incarnation: 0, Time: time.Now()}
+            GossipNodesMutex.Unlock()
 		} else message.Type == pb.SWIMMessage_PONG {
 			// This is the ack from relay message, send ack back to the sender.
             targetAddr, err := net.ResolveUDPAddr("udp", message.Target)
@@ -279,8 +283,8 @@ func startServer() {
             // Create a SWIMMessage to send
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
-                Sender: SelfAddress,
-                Target: message.Sender,
+                Sender: message.Sender,
+                Target: message.Target,
             }
 
             // Serialize the message using protobuf
@@ -462,6 +466,7 @@ func pingIndirect(node NodeInfo) {
 
 func pingServer(node NodeInfo) {  
     conn, err := net.DialTimeout("udp", node.address, TIMEOUT_PERIOD * time.Second)
+    defer conn.Close()
     if err != nil {
         fmt.Printf("Failed to ping %s: %v\n", node.address, err)
         // TODO: Handle the case where the direct node is down
@@ -481,12 +486,11 @@ func pingServer(node NodeInfo) {
         }
         return
     }
-    defer conn.Close()
 
     // TODO: Send a PING message to the server
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_PING,
-        Sender: hoostname + ":" + PORT,
+        Sender: SelfAddress,
         Target: node.address,
     }
 
@@ -538,30 +542,36 @@ func pingServer(node NodeInfo) {
     }
 
     // Update the state of the node
-    for _, Membership := range response.MembershipInfo {
+       
+}
+
+func handleGossip(message pb.SWIMMessage) {
+    for _, Membership := range message.MembershipInfo {
         if Membership.Status == "Down" {
             // delete the node from the Nodes list
-            NodesMutex.Lock()
-            delete(Nodes, node.ID)
-            NodesMutex.Unlock()
-
-            // add the node to the GossipNodes list
-            GossipNodesMutex.Lock()
-            _, exists := GossipNodes[node.ID]; 
+            _, exists := Nodes[Membership.memberID];
             if exists {
-                // if gossipNodes is not empty, check if the node is already in the list
-                if GossipNodes[node.ID].Time < time.Now().Add(-DEAD_TIMEOUT * time.Second) {
-                    delete(GossipNodes, node.ID)
-                }
+                NodesMutex.Lock()
+                delete(Nodes, Membership.memberID)
+                NodesMutex.Unlock()
+
+                // add the node to the GossipNodes list
+                GossipNodesMutex.Lock()
+                GossipNodes[Membership.memberID] = GossipNode{ID: Membership.memberID, Address: Membership.memberAddress, State: Down, Incarnation: 0, Time: time.Now()}
+                GossipNodesMutex.Unlock()
             }
-            else {
-                // not exist
-                GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0, Time: time.Now()}
+        } else if Membership.Status == "Join" {
+            // add the node to the Nodes list
+            _, exists := Nodes[Membership.memberID];
+            if !exists {
+                NodesMutex.Lock()
+                Nodes[Membership.memberID] = NodeInfo{ID: Membership.memberID, Address: Membership.memberAddress, State: Alive}
+                NodesMutex.Unlock()
+
+                GossipNodesMutex.Lock()
+                GossipNodes[Membership.memberID] = GossipNode{ID: Membership.memberID, Address: Membership.memberAddress, State: Join, Incarnation: 0, Time: time.Now()}
+                GossipNodesMutex.Unlock()
             }
-            GossipNodesMutex.Unlock()
-            return
         }
-    }   
-
-
+    }
 }
