@@ -17,14 +17,10 @@ func main() {
 
     // Create a SWIMMessage to send
     message := &pb.SWIMMessage{
-        Type:   pb.SWIMMessage_PING,
+        Type:   pb.SWIMMessage_INDIRECT_PING,
         Sender: "node1",
         Target: "node2",
         Membership: []*pb.MembershipInfo{
-            {
-                Address: "node1",
-                Status:  "Alive",
-            },
         },
     }
 

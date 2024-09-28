@@ -23,4 +23,5 @@ message SWIMMessage {
 message MembershipInfo {
   string MemberID = 1; // IP+PORT+TIMESTAMP
   string status = 2; // Can be "Alive", "Suspected", or "Failed"
+  int incarnation = 3; 
 }

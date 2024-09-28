@@ -31,7 +31,7 @@ func handleConnection(conn net.Conn) {
 
     // Process the received message
     fmt.Printf("Received message: %+v\n", message)
-    fmr.printf("Message type: %v\n", message.Type)
+    fmt.Printf("Message type: %v\n", message.Type)
 }
 
 func main() {

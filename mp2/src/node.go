@@ -27,6 +27,13 @@ type NodeInfo struct {
     State   State
 }
 
+type GossipNode struct {
+    ID string
+    Address string
+    State State
+    Incarnation int
+}
+
 var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
 var PROTOCOL_PERIOD = 5
@@ -35,8 +42,19 @@ var SUSPECT_TIMEOUT = 30
 
 var Introducer = false
 var Nodes = make(map[string]NodeInfo)
+Var GossipNodes = make(map[string]GossipNode)
 var NodesMutex sync.Mutex
 var Id = ""
+
+func Address_to_ID(address string) string {
+    NodesMutex.Lock()
+    for _, node := range Nodes {
+        if node.Address == address {
+            return node.ID
+        }
+    }
+    NodesMutex.Unlock()
+}
 
 func main(){
 	introducerFlag := flag.Bool("introducer", false, "Set this flag to true if this node is the introducer")
@@ -315,10 +333,21 @@ func startClient() {
                 })
             }
             node := nodesArray[curNode]
-            pingServer(curNode)
+            pingServer(node.Address)
             curNode++
         }
 	}
+}
+
+
+func pingIndirect(address string) {
+    // TODO: implement the logic to ping the indirect node
+    conn, err := net.DialTimeout("udp", address, TIMEOUT_PERIOD * time.Second)
+    if err != nil {
+        fmt.Printf("Failed to ping %s: %v\n", address, err)
+    }
+    defer conn.Close()
+
 }
 
 func pingServer(address string) {
@@ -326,10 +355,44 @@ func pingServer(address string) {
     if err != nil {
         fmt.Printf("Failed to ping %s: %v\n", address, err)
         // TODO: Handle the case where the node is down
+        // delete the node from the Nodes list
+        Delete_id = Address_to_ID(address)
+        for _, node := range Nodes {
+            if node.ID == Delete_id {
+                NodesMutex.Lock()
+                delete(Nodes, node.ID)
+                NodesMutex.Unlock()
+                break
+            }
+        }
+
+        // add the node to the GossipNodes list
+        GossipNodesMutex.Lock()
+        GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
+        GossipNodesMutex.Unlock()
+        return
     }
     defer conn.Close()
 
     // TODO: Send a PING message to the server
+    message := &pb.SWIMMessage{
+        Type:   pb.SWIMMessage_PING,
+        Sender: hoostname + ":" + PORT,
+        Target: address,
+    }
+
+    data, err := proto.Marshal(message)
+    if err != nil {
+        fmt.Printf("Failed to marshal message: %v\n", err)
+        return
+    }
+
+    _, err = conn.Write(data)
+    if err != nil {
+        fmt.Printf("Failed to send message: %v\n", err)
+        return
+    }
+
 
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
@@ -339,8 +402,34 @@ func pingServer(address string) {
     if err != nil {
         fmt.Printf("No response from %s: %v\n", address, err)
         // TODO: Handle the case where the node is down
+        // delete the node from the Nodes list
+        Delete_id = Address_to_ID(address)
+        for _, node := range Nodes {
+            if node.ID == Delete_id {
+                NodesMutex.Lock()
+                delete(Nodes, node.ID)
+                NodesMutex.Unlock()
+                break
+            }
+        }
+
+        // add the node to the GossipNodes list
+        GossipNodesMutex.Lock()
+        GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
+        GossipNodesMutex.Unlock()
+        return
     }
 
-    response := string(buffer[:n])
+
     // TODO: Parse the response and update the state of the node
+    var response pb.SWIMMessage
+    err = proto.Unmarshal(buffer[:n], &response)
+    if err != nil {
+        fmt.Printf("Failed to unmarshal message: %v\n", err)
+        return
+    }
+
+
+
+
 }
