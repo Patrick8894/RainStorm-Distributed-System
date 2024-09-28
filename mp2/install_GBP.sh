@@ -3,6 +3,7 @@
 apt install -y protobuf-compiler
 protoc --version
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go get google.golang.org/protobuf/proto
 
 # Define the line to add
 line_to_add='export PATH=$PATH:$(go env GOPATH)/bin'
@@ -16,4 +17,4 @@ else
     echo "Line already exists in ~/.bashrc"
 fi
 
-go get google.golang.org/protobuf/proto
+

@@ -9,6 +9,7 @@ import (
     "strconv"
 	"sync"
     "time"
+    pb "mp2/proto"
 )
 
 type State int
@@ -82,6 +83,50 @@ func main(){
 func dialIntroducer() {
     // TODO: implement the logic to dial the introducer and get the list of nodes
     fmt.Println("Dialing introducer...")
+
+    conn, err := net.Dial("udp", INTRODUCER_ADDRESS)
+    if err != nil {
+        fmt.Println("Error dialing introducer:", err)
+        return
+    }
+    defer conn.Close()
+
+    // Create a SWIMMessage and send it to the introducer
+    message := &pb.SWIMMessage{
+        Type:   pb.SWIMMessage_JOIN,
+        Sender: Id,
+        Target: INTRODUCER_ADDRESS,
+        Membership: []*pb.MembershipInfo{
+            {
+                MemberID: Id,
+                Status:  "Alive",
+            },
+        },
+    }
+
+    data, err := proto.Marshal(message)
+    if err != nil {
+        fmt.Println("Failed to marshal message:", err)
+        return
+    }
+
+    _, err = conn.Write(data)
+    if err != nil {
+        fmt.Println("Failed to send message:", err)
+        return
+    }
+
+    fmt.Println("Message sent to introducer")
+    
+    // Set a read deadline for the response
+    // conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
+
+    // buffer := make([]byte, 1024)
+    // n, err := conn.Read(buffer)
+    // if err != nil {
+    //     fmt.Println("No response from introducer:", err)
+    //     return
+    // }
 }
 
 func startServer() {
@@ -102,19 +147,60 @@ func startServer() {
             fmt.Println("Error reading from connection:", err)
             continue
         }
-        message := string(buffer[:n])
+        
+        // Unmarshal the protobuf message
+        var message pb.SWIMMessage
+        err = proto.Unmarshal(buf[:n], &message)
+        if err != nil {
+            log.Println("Failed to unmarshal message:", err)
+            return
+        }
+
+        //  received message
+        fmt.Printf("Received message: %+v\n", message)
+
         // fmt.Printf("Received %d bytes from %s: %s\n", n, addr, message)
 
-        if strings.HasPrefix(message, "PING") {
+        if message.Type == pb.SWIMMessage_PING {
             // TODO: response to ping
-        } else if strings.HasPrefix(message, "RELAY") {
+            // Create a SWIMMessage to send
+            response := &pb.SWIMMessage{
+                Type:   pb.SWIMMessage_PONG,
+                Sender: Id,
+                Target: message.Sender,
+                Membership: []*pb.MembershipInfo{
+                    {
+                        MemberID: Id,
+                        Status:  "Alive",
+                    },
+                },
+            }
+
+            // Serialize the message using protobuf
+            data, err := proto.Marshal(response)
+            if err != nil {
+                fmt.Println("Failed to marshal message:", err)
+                return
+            }
+
+            // Send the message to the server
+            _, err = conn.WriteTo(data, addr)
+            if err != nil {
+                fmt.Println("Failed to send message:", err)
+                return
+            }
+
+            fmt.Println("Message sent to server")
+
+        } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
             // TODO: Relay the message to the target node
-        } else if strings.HasPrefix(message, "JOIN") {
+
+        } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
 			NodesMutex.Lock()
             // TODO: Add the new node to the list of nodes
             NodesMutex.Unlock()
-		} else if strings.HasPrefix(message, "ACK") {
+		} else message.Type == pb.SWIMMessage_PONG {
 			// TODO: This is the ack from relay message, send ack back to the sender.
 		} else {
 			fmt.Println("Unknown message:", message)
