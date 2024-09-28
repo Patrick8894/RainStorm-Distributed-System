@@ -119,14 +119,30 @@ func dialIntroducer() {
     fmt.Println("Message sent to introducer")
     
     // Set a read deadline for the response
-    // conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
+    conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
 
-    // buffer := make([]byte, 1024)
-    // n, err := conn.Read(buffer)
-    // if err != nil {
-    //     fmt.Println("No response from introducer:", err)
-    //     return
-    // }
+    buffer := make([]byte, 1024)
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("No response from introducer:", err)
+        return
+    }
+
+    var message pb.SWIMMessage
+    err = proto.Unmarshal(buffer[:n], &message)
+    if err != nil {
+        fmt.Println("Failed to unmarshal message:", err)
+        return
+    }
+
+    NodesMutex.Lock()
+    for _, member := range message.Membership {
+        if member.Status == "Alive" {
+            Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
+        }
+    }
+    NodesMutex.Unlock()
+
 }
 
 func startServer() {
@@ -194,6 +210,10 @@ func startServer() {
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
             // TODO: Relay the message to the target node
+            messages := &pb.SWIMMessage{
+                
+
+
 
         } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
