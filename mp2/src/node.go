@@ -140,6 +140,9 @@ func dialIntroducer() {
         if member.Status == "Alive" {
             Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
         }
+        else member.Status == "Suspected" {
+            Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Suspected}
+        }
     }
     NodesMutex.Unlock()
 
@@ -211,17 +214,71 @@ func startServer() {
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
             // TODO: Relay the message to the target node
             messages := &pb.SWIMMessage{
-                
+                Type:   pb.SWIMMessage_INDIRECT_PING,
+                Sender: message.Sender,
+                Target: message.Target,
+                Membership: []*pb.MembershipInfo{},
+            }
 
+            // Serialize the message using protobuf
+            data, err := proto.Marshal(messages)
+            if err != nil {
+                fmt.Println("Failed to marshal message:", err)
+                return
+            }
+
+            // Send the message to the server
+            _, err = conn.WriteTo(data, addr)
+            if err != nil {
+                fmt.Println("Failed to send message:", err)
+                return
             }
 
         } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
 			NodesMutex.Lock()
             // TODO: Add the new node to the list of nodes
+            for _, member := range message.Membership {
+                if member.Status == "Alive" {
+                    Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
+                }
+                else member.Status == "Suspected" {
+                    Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Suspected}
+                }
+            }
+
             NodesMutex.Unlock()
 		} else message.Type == pb.SWIMMessage_PONG {
 			// TODO: This is the ack from relay message, send ack back to the sender.
+
+            // Create a SWIMMessage to send
+            response := &pb.SWIMMessage{
+                Type:   pb.SWIMMessage_PONG,
+                Sender: Id,
+                Target: message.Sender,
+                Membership: []*pb.MembershipInfo{
+                    {
+                        MemberID: Id,
+                        Status:  "Alive",
+                    },
+                },
+            }
+
+            // Serialize the message using protobuf
+            data, err := proto.Marshal(response)
+            if err != nil {
+                fmt.Println("Failed to marshal message:", err)
+                return
+            }
+
+            // Send the message to the server
+            _, err = conn.WriteTo(data, addr)
+            if err != nil {
+                fmt.Println("Failed to send message:", err)
+                return
+            }
+
+            fmt.Println("Message sent to server")
 		} else {
 			fmt.Println("Unknown message:", message)
 		}
