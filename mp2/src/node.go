@@ -45,10 +45,11 @@ var ALIVE_TIMEOUT = 10
 
 var Introducer = false
 var Nodes = make(map[string]NodeInfo)
-Var GossipNodes = make(map[string]GossipNode)
+var GossipNodes = make(map[string]GossipNode)
 var NodesMutex sync.Mutex
 var GossipNodesMutex sync.Mutex
 var Id = ""
+var SelfAddress = ""
 
 func Address_to_ID(address string) string {
     NodesMutex.Lock()
@@ -73,6 +74,7 @@ func main(){
         return
     }
 
+    SelfAddress = hostname + ":" + PORT
 	Id = hostname + ":" + PORT + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	fmt.Println("Node ID:", Id)
 
@@ -116,7 +118,7 @@ func dialIntroducer() {
     // Create a SWIMMessage and send it to the introducer
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_JOIN,
-        Sender: Id,
+        Sender: SelfAddress,
         Target: INTRODUCER_ADDRESS
     }
 
@@ -201,7 +203,7 @@ func startServer() {
             // Create a SWIMMessage to send
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
-                Sender: Id,
+                Sender: SelfAddress,
                 Target: message.Sender
             }
 
@@ -277,7 +279,7 @@ func startServer() {
             // Create a SWIMMessage to send
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
-                Sender: Id,
+                Sender: SelfAddress,
                 Target: message.Sender,
             }
 
@@ -343,15 +345,119 @@ func startClient() {
 	}
 }
 
+func getRandomNodes(n int) []NodeInfo {
+    NodesMutex.Lock()
 
-func pingIndirect(address string) {
-    // TODO: implement the logic to ping the indirect node
-    conn, err := net.DialTimeout("udp", address, TIMEOUT_PERIOD * time.Second)
-    if err != nil {
-        fmt.Printf("Failed to ping %s: %v\n", address, err)
+    keys := make([]string, 0, len(Nodes))
+    
+    for k := range Nodes {
+        keys = append(keys, k)
     }
-    defer conn.Close()
 
+    if len(keys) < n {
+        n = len(keys)
+    }
+
+    rand.Shuffle(len(keys), func(i, j int) {
+        keys[i], keys[j] = keys[j], keys[i]
+    })
+
+    randomNodes := make([]NodeInfo, 0, n)
+    for i := 0; i < n; i++ {
+        randomNodes = append(randomNodes, Nodes[keys[i]])
+    }
+
+    NodesMutex.Unlock()
+    return randomNodes
+}
+
+func pingIndirect(node NodeInfo) {
+    // TODO: implement the logic to ping the indirect node
+    randomNodes := getRandomNodes(3)
+    resultChan := make(chan bool, len(randomNodes))
+    var wg sync.WaitGroup
+
+    for _, randomNode := range randomNodes {
+        wg.Add(1)
+        go func(rNode NodeInfo) {
+            defer wg.Done()
+
+            indirectPingMessage := &pb.SWIMMessage{
+                Type:   pb.SWIMMessage_INDIRECT_PING,
+                Sender: SelfAddress,
+                Target: node.Address, // Assuming NodeInfo has an Address field
+            }
+
+            // Serialize the INDIRECT_PING message using protobuf
+            data, err := proto.Marshal(indirectPingMessage)
+            if err != nil {
+                fmt.Println("Failed to marshal INDIRECT_PING message:", err)
+                resultChan <- false
+                return
+            }
+            
+            // Resolve the address of the random node
+            randomNodeAddr, err := net.ResolveUDPAddr("udp", rNode.Address)
+            if err != nil {
+                fmt.Println("Failed to resolve random node address:", err)
+                resultChan <- false
+                return
+            }
+            
+            // Send the INDIRECT_PING message to the random node
+            _, err = conn.WriteTo(data, randomNodeAddr)
+            if err != nil {
+                fmt.Println("Failed to send INDIRECT_PING message:", err)
+                resultChan <- false
+                return
+            }
+
+            // Buffer to read the response
+            buffer := make([]byte, 4096)
+
+            // Set a read deadline
+            conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+            // Read from the connection
+            n, _, err := conn.ReadFrom(buffer)
+            if err != nil {
+                fmt.Println("Failed to read from connection:", err)
+                resultChan <- false
+                return
+            }
+
+            // Unmarshal the protobuf message
+            var responseMessage pb.SWIMMessage
+            err = proto.Unmarshal(buffer[:n], &responseMessage)
+            if err != nil {
+                fmt.Println("Failed to unmarshal response message:", err)
+                resultChan <- false
+                return
+            }
+
+            // Check if the message type is PONG
+            if responseMessage.Type == pb.SWIMMessage_PONG {
+                resultChan <- true
+            } else {
+                resultChan <- false
+            }
+        }(randomNode)
+    }
+
+    // Close the result channel once all goroutines are done
+    go func() {
+        wg.Wait()
+        close(resultChan)
+    }()
+
+    // Return true if any of the goroutines succeeded
+    for result := range resultChan {
+        if result {
+            return true
+        }
+    }
+
+    return false
 }
 
 func pingServer(node NodeInfo) {  
