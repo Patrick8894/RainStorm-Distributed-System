@@ -40,11 +40,14 @@ var PORT = "8081"
 var PROTOCOL_PERIOD = 5
 var TIMEOUT_PERIOD = 1
 var SUSPECT_TIMEOUT = 30
+var DEAD_TIMEOUT = 60
+var ALIVE_TIMEOUT = 10
 
 var Introducer = false
 var Nodes = make(map[string]NodeInfo)
 Var GossipNodes = make(map[string]GossipNode)
 var NodesMutex sync.Mutex
+var GossipNodesMutex sync.Mutex
 var Id = ""
 
 func Address_to_ID(address string) string {
@@ -334,7 +337,7 @@ func startClient() {
                 })
             }
             node := nodesArray[curNode]
-            pingServer(node.Address)
+            pingServer(node)
             curNode++
         }
 	}
@@ -351,28 +354,25 @@ func pingIndirect(address string) {
 
 }
 
-func pingServer(address string) {
-    conn, err := net.DialTimeout("udp", address, TIMEOUT_PERIOD * time.Second)
+func pingServer(node NodeInfo) {  
+    conn, err := net.DialTimeout("udp", node.address, TIMEOUT_PERIOD * time.Second)
     if err != nil {
-        fmt.Printf("Failed to ping %s: %v\n", address, err)
-        // TODO: Handle the case where the node is down
-        // delete the node from the Nodes list
-        Delete_id = Address_to_ID(address)
-        for _, node := range Nodes {
-            if node.ID == Delete_id {
-                NodesMutex.Lock()
-                delete(Nodes, node.ID)
-                NodesMutex.Unlock()
-                break
-            }
+        fmt.Printf("Failed to ping %s: %v\n", node.address, err)
+        // TODO: Handle the case where the direct node is down
+
+        rst := pingIndirect(node)
+
+        if rst == false {
+            // delete the node from the Nodes list
+            NodesMutex.Lock()
+            delete(Nodes, node.ID)
+            NodesMutex.Unlock()
+
+            // add the node to the GossipNodes list
+            GossipNodesMutex.Lock()
+            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0}
+            GossipNodesMutex.Unlock()
         }
-
-        // add the node to the GossipNodes list
-        GossipNodesMutex.Lock()
-        GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
-        GossipNodesMutex.Unlock()
-
-        pingIndirect(address)
         return
     }
     defer conn.Close()
@@ -381,7 +381,7 @@ func pingServer(address string) {
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_PING,
         Sender: hoostname + ":" + PORT,
-        Target: address,
+        Target: node.address,
     }
 
     data, err := proto.Marshal(message)
@@ -403,25 +403,22 @@ func pingServer(address string) {
     buffer := make([]byte, 1024)
     n, err := conn.Read(buffer)
     if err != nil {
-        fmt.Printf("No response from %s: %v\n", address, err)
+        fmt.Printf("No response from %s: %v\n", node.address, err)
         // TODO: Handle the case where the node is down
-        // delete the node from the Nodes list
-        Delete_id = Address_to_ID(address)
-        for _, node := range Nodes {
-            if node.ID == Delete_id {
-                NodesMutex.Lock()
-                delete(Nodes, node.ID)
-                NodesMutex.Unlock()
-                break
-            }
+
+        rst := pingIndirect(node)
+        
+        if rst == false {
+            // delete the node from the Nodes list
+            NodesMutex.Lock()
+            delete(Nodes, node.ID)
+            NodesMutex.Unlock()
+
+            // add the node to the GossipNodes list
+            GossipNodesMutex.Lock()
+            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0}
+            GossipNodesMutex.Unlock()
         }
-
-        // add the node to the GossipNodes list
-        GossipNodesMutex.Lock()
-        GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
-        GossipNodesMutex.Unlock()
-
-        pingIndirect(address)
         return
     }
 
@@ -438,41 +435,27 @@ func pingServer(address string) {
     for _, Membership := range response.MembershipInfo {
         if Membership.Status == "Down" {
             // delete the node from the Nodes list
-            Delete_id = Address_to_ID(address)
-            for _, node := range Nodes {
-                if node.ID == Delete_id {
-                    NodesMutex.Lock()
-                    delete(Nodes, node.ID)
-                    NodesMutex.Unlock()
-                    break
-                }
-            }
+            NodesMutex.Lock()
+            delete(Nodes, node.ID)
+            NodesMutex.Unlock()
 
             // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            _, exists := GossipNodes[Delete_id]; 
+            _, exists := GossipNodes[node.ID]; 
             if exists {
                 // if gossipNodes is not empty, check if the node is already in the list
-                for _, node := range GossipNodes {
-                    if node.ID == Delete_id {
-                        // check time if the time is too long then delete the node from the GossipNodes list
-                        
-                    }
+                if GossipNodes[node.ID].Time < time.Now().Add(-DEAD_TIMEOUT * time.Second) {
+                    delete(GossipNodes, node.ID)
                 }
             }
             else {
                 // not exist
-                GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0, Time: time.Now()}
+                GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0, Time: time.Now()}
             }
-
             GossipNodesMutex.Unlock()
             return
         }
     }   
-
-
-
-
 
 
 }
