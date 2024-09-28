@@ -11,46 +11,10 @@ import (
 	"sync"
     "time"
     pb "mp2/proto"
+    "mp2/src/utils"
+    "mp2/src/global"
 )
 
-type State int
-
-const (
-    Suspected State = iota
-    Alive
-    Down
-)
-
-// Define the struct for the map values
-type NodeInfo struct {
-	ID 	string
-    Address string
-    State   State
-}
-
-type GossipNode struct {
-    ID string
-    Address string
-    State State
-    Incarnation int
-    Time time.Time
-}
-
-var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
-var PORT = "8081"
-var PROTOCOL_PERIOD = 5
-var TIMEOUT_PERIOD = 1
-var SUSPECT_TIMEOUT = 30
-var DEAD_TIMEOUT = 60
-var ALIVE_TIMEOUT = 10
-
-var Introducer = false
-var Nodes = make(map[string]NodeInfo)
-var GossipNodes = make(map[string]GossipNode)
-var NodesMutex sync.Mutex
-var GossipNodesMutex sync.Mutex
-var Id = ""
-var SelfAddress = ""
 
 func Address_to_ID(address string) string {
     NodesMutex.Lock()
@@ -106,6 +70,7 @@ func main(){
 }
 
 func dialIntroducer() {
+    // If the node is not the introducer, then send a JOIN message to the introducer
     // TODO: implement the logic to dial the introducer and get the list of nodes
     fmt.Println("Dialing introducer...")
 
@@ -127,24 +92,15 @@ func dialIntroducer() {
             },
         },
     }
-
-    data, err := proto.Marshal(message)
-    if err != nil {
-        fmt.Println("Failed to marshal message:", err)
-        return
-    }
-
-    _, err = conn.Write(data)
-    if err != nil {
-        fmt.Println("Failed to send message:", err)
-        return
-    }
-
-    fmt.Println("Message sent to introducer")
+    
+    fmt.Println("Sending JOIN message to introducer from", SelfAddress)
+    send_message(conn, INTRODUCER_ADDRESS, message)
     
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
 
+
+    // Use Json to unmarshal when receiving the whole NodeList
     buffer := make([]byte, 4096)
     n, err := conn.Read(buffer)
     if err != nil {
@@ -185,41 +141,30 @@ func startServer() {
         
         // Unmarshal the protobuf message
         var message pb.SWIMMessage
-        err = proto.Unmarshal(buf[:n], &message)
+        message, err = read_message(conn)
         if err != nil {
-            log.Println("Failed to unmarshal message:", err)
+            log.Println("Failed to unmarshal message: in start server stage", err)
             return
         }
 
         //  received message
         fmt.Printf("Received message: %+v\n", message)
 
-        // fmt.Printf("Received %d bytes from %s: %s\n", n, addr, message)
-
         if message.Type == pb.SWIMMessage_PING {
             // Response to ping
             // Create a SWIMMessage to send
+
+            gossiplist := get_gossiplist(GossipNodes)
+
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: SelfAddress,
                 Target: message.Sender
+                MembershipInfo : gossipNodelist
             }
-
-            // Serialize the message using protobuf
-            data, err := proto.Marshal(response)
-            if err != nil {
-                fmt.Println("Failed to marshal message:", err)
-                return
-            }
-
-            // Send the message to the server
-            _, err = conn.WriteTo(data, addr)
-            if err != nil {
-                fmt.Println("Failed to send message:", err)
-                return
-            }
-
-            fmt.Println("Message sent to server")
+            
+            send_message(conn, addr, response)
+        	fmt.Println("Message success ping to server")
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
             // Relay the message to the target node
@@ -228,29 +173,20 @@ func startServer() {
                 fmt.Println("Failed to resolve target address:", err)
                 return
             }
+            
+            gossiplist := get_gossiplist(GossipNodes)
 
             // Create a PING message with the same sender and target
             pingMessage := &pb.SWIMMessage{
                 Type: pb.SWIMMessage_PING,
                 Sender: message.Sender,
                 Target: message.Target,
+                MembershipInfo: gossiplist,
             }
+            
+            send_message(conn, targetAddr, pingMessage)
 
-            // Serialize the PING message using protobuf
-            data, err := proto.Marshal(pingMessage)
-            if err != nil {
-                fmt.Println("Failed to marshal PING message:", err)
-                return
-            }
-
-            // Send the PING message to the target node
-            _, err = conn.WriteTo(data, targetAddr)
-            if err != nil {
-                fmt.Println("Failed to send PING message:", err)
-                return
-            }
-
-            fmt.Println("PING message sent to target node")
+            fmt.Println("PING message success sent to target node")
 
         } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
@@ -279,29 +215,20 @@ func startServer() {
                 fmt.Println("Failed to resolve target address:", err)
                 return
             }
-
+            
+            gossiplist := get_gossiplist(GossipNodes)
             // Create a SWIMMessage to send
-            response := &pb.SWIMMessage{
+            requests := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: message.Sender,
                 Target: message.Target,
+                MembershipInfo: gossiplist
             }
+            
+            send_message(conn, targetAddr, requests)
 
-            // Serialize the message using protobuf
-            data, err := proto.Marshal(response)
-            if err != nil {
-                fmt.Println("Failed to marshal message:", err)
-                return
-            }
+            fmt.Println("Relay Message sent to server")
 
-            // Send the message to the server
-            _, err = conn.WriteTo(data, targetAddr)
-            if err != nil {
-                fmt.Println("Failed to send message:", err)
-                return
-            }
-
-            fmt.Println("Message sent to server")
 		} else {
 			fmt.Println("Unknown message:", message)
 		}
@@ -385,11 +312,15 @@ func pingIndirect(node NodeInfo) {
         wg.Add(1)
         go func(rNode NodeInfo) {
             defer wg.Done()
+            
+            // Construct GossipMessage
+            gossiplist := get_gossiplist(GossipNodes)
 
             indirectPingMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_INDIRECT_PING,
                 Sender: SelfAddress,
                 Target: node.Address, // Assuming NodeInfo has an Address field
+                GossipNodelist: gossiplist,
             }
 
             // Serialize the INDIRECT_PING message using protobuf
@@ -488,24 +419,15 @@ func pingServer(node NodeInfo) {
     }
 
     // TODO: Send a PING message to the server
+    gossiping := get_gossiplist(GossipNodes)
+
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_PING,
         Sender: SelfAddress,
         Target: node.address,
+        MembershipInfo: gossiping
     }
-
-    data, err := proto.Marshal(message)
-    if err != nil {
-        fmt.Printf("Failed to marshal message: %v\n", err)
-        return
-    }
-
-    _, err = conn.Write(data)
-    if err != nil {
-        fmt.Printf("Failed to send message: %v\n", err)
-        return
-    }
-
+    send_message(conn, node.address, message)
 
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
@@ -542,6 +464,7 @@ func pingServer(node NodeInfo) {
     }
 
     // Update the state of the node
+    handleGossip(response)
        
 }
 

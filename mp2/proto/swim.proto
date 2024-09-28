@@ -21,7 +21,8 @@ message SWIMMessage {
 
 // MembershipInfo stores information about a node in the cluster
 message MembershipInfo {
-  string MemberID = 1; // IP+PORT+TIMESTAMP
-  string status = 2; // Can be "Alive", "Suspected", or "Failed"
-  int incarnation = 3; 
+  string memberID = 1; // IP+PORT+TIMESTAMP
+  string memberStatus = 2; // Can be "Alive", "Suspected", or "Failed", "Join"
+  string memberAddress = 3;
+  int32 memberIncarnation = 4; 
 }
