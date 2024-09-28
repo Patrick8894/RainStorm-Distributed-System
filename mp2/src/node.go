@@ -95,13 +95,7 @@ func dialIntroducer() {
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_JOIN,
         Sender: Id,
-        Target: INTRODUCER_ADDRESS,
-        Membership: []*pb.MembershipInfo{
-            {
-                MemberID: Id,
-                Status:  "Alive",
-            },
-        },
+        Target: INTRODUCER_ADDRESS
     }
 
     data, err := proto.Marshal(message)
@@ -181,18 +175,12 @@ func startServer() {
         // fmt.Printf("Received %d bytes from %s: %s\n", n, addr, message)
 
         if message.Type == pb.SWIMMessage_PING {
-            // TODO: response to ping
+            // Response to ping
             // Create a SWIMMessage to send
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: Id,
-                Target: message.Sender,
-                Membership: []*pb.MembershipInfo{
-                    {
-                        MemberID: Id,
-                        Status:  "Alive",
-                    },
-                },
+                Target: message.Sender
             }
 
             // Serialize the message using protobuf
@@ -212,32 +200,40 @@ func startServer() {
             fmt.Println("Message sent to server")
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
-            // TODO: Relay the message to the target node
-            messages := &pb.SWIMMessage{
-                Type:   pb.SWIMMessage_INDIRECT_PING,
+            // Relay the message to the target node
+            targetAddr, err := net.ResolveUDPAddr("udp", message.Target)
+            if err != nil {
+                fmt.Println("Failed to resolve target address:", err)
+                return
+            }
+
+            // Create a PING message with the same sender and target
+            pingMessage := &pb.SWIMMessage{
+                Type: pb.SWIMMessage_PING,
                 Sender: message.Sender,
                 Target: message.Target,
-                Membership: []*pb.MembershipInfo{},
             }
 
-            // Serialize the message using protobuf
-            data, err := proto.Marshal(messages)
+            // Serialize the PING message using protobuf
+            data, err := proto.Marshal(pingMessage)
             if err != nil {
-                fmt.Println("Failed to marshal message:", err)
+                fmt.Println("Failed to marshal PING message:", err)
                 return
             }
 
-            // Send the message to the server
-            _, err = conn.WriteTo(data, addr)
+            // Send the PING message to the target node
+            _, err = conn.WriteTo(data, targetAddr)
             if err != nil {
-                fmt.Println("Failed to send message:", err)
+                fmt.Println("Failed to send PING message:", err)
                 return
             }
+
+            fmt.Println("PING message sent to target node")
 
         } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
 			NodesMutex.Lock()
-            // TODO: Add the new node to the list of nodes
+            // Add the new node to the list of nodes
             for _, member := range message.Membership {
                 if member.Status == "Alive" {
                     Nodes[member.MemberID] = NodeInfo{ID: member.MemberID, Address: member.Address, State: Alive}
@@ -249,19 +245,18 @@ func startServer() {
 
             NodesMutex.Unlock()
 		} else message.Type == pb.SWIMMessage_PONG {
-			// TODO: This is the ack from relay message, send ack back to the sender.
+			// This is the ack from relay message, send ack back to the sender.
+            targetAddr, err := net.ResolveUDPAddr("udp", message.Target)
+            if err != nil {
+                fmt.Println("Failed to resolve target address:", err)
+                return
+            }
 
             // Create a SWIMMessage to send
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: Id,
                 Target: message.Sender,
-                Membership: []*pb.MembershipInfo{
-                    {
-                        MemberID: Id,
-                        Status:  "Alive",
-                    },
-                },
             }
 
             // Serialize the message using protobuf
@@ -272,7 +267,7 @@ func startServer() {
             }
 
             // Send the message to the server
-            _, err = conn.WriteTo(data, addr)
+            _, err = conn.WriteTo(data, targetAddr)
             if err != nil {
                 fmt.Println("Failed to send message:", err)
                 return
