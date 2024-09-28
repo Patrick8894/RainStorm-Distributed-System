@@ -9,7 +9,7 @@ import (
 )
 
 // Map global.State to pb.MembershipInfo_State
-func mapState(state global.State) pb.MembershipInfo_State {
+func MapState(state global.State) pb.MembershipInfo_State {
     switch state {
     case global.Suspected:
         return pb.MembershipInfo_Suspected
@@ -25,13 +25,13 @@ func mapState(state global.State) pb.MembershipInfo_State {
 }
 
 // Corrected function to get the gossip list
-func get_gossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInfo {
+func GetGossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInfo {
     gossipNodelist := []*pb.MembershipInfo{}
     for _, GossipNode := range GossipNodes {
         gossipNodelist = append(gossipNodelist, &pb.MembershipInfo{
             MemberID:          GossipNode.ID,
             MemberAddress:     GossipNode.Address,
-            MemberStatus:      mapState(GossipNode.State), // Map the state
+            MemberStatus:      MapState(GossipNode.State), // Map the state
             MemberIncarnation: int32(GossipNode.Incarnation),
         })
     }
@@ -39,20 +39,20 @@ func get_gossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipIn
 }
 
 // Corrected function to get the node list
-func get_nodelist(Nodes map[string]global.NodeInfo) []*pb.MembershipInfo {
+func GetNodelist(Nodes map[string]global.NodeInfo) []*pb.MembershipInfo {
     nodelist := []*pb.MembershipInfo{}
     for _, Node := range Nodes {
         nodelist = append(nodelist, &pb.MembershipInfo{
             MemberID:      Node.ID,
             MemberAddress: Node.Address,
-            MemberStatus:  mapState(Node.State), // Map the state
+            MemberStatus:  MapState(Node.State), // Map the state
         })
     }
     return nodelist
 }
 
 // Corrected function to send a message
-func send_message(conn net.Conn, addr net.Addr, message *pb.SWIMMessage) () {
+func SendMessage(conn net.Conn, addr net.UDPAddr, message *pb.SWIMMessage) {
     data, err := proto.Marshal(message)
     if err != nil {
         fmt.Printf("Failed to marshal message: %v\n", err)
@@ -65,18 +65,18 @@ func send_message(conn net.Conn, addr net.Addr, message *pb.SWIMMessage) () {
 }
 
 // Function to read a message
-func read_message(conn net.Conn) (*pb.SWIMMessage, error) {
-    buf := make([]byte, 4096)
-    n, err := conn.Read(buf)
-    if err != nil {
-        fmt.Println("Error reading from connection:", err)
-        return nil, err
-    }
-    var message pb.SWIMMessage
-    err = proto.Unmarshal(buf[:n], &message)
-    if err != nil {
-        fmt.Println("Failed to unmarshal message:", err)
-        return nil, err
-    }
-    return &message, nil
-}
+// func ReadMessage(conn net.PacketConn) (*pb.SWIMMessage, error) {
+//     buf := make([]byte, 4096)
+//     n, err := conn.ReadFrom(buf)
+//     if err != nil {
+//         fmt.Println("Error reading from connection:", err)
+//         return nil, err
+//     }
+//     var message pb.SWIMMessage
+//     err = proto.Unmarshal(buf[:n], &message)
+//     if err != nil {
+//         fmt.Println("Failed to unmarshal message:", err)
+//         return nil, err
+//     }
+//     return &message, addr, nil
+// }

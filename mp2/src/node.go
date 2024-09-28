@@ -13,6 +13,7 @@ import (
     pb "mp2/proto"
     "mp2/src/utils"
     "mp2/src/global"
+    "google.golang.org/protobuf/proto"
 )
 
 
@@ -95,20 +96,19 @@ func dialIntroducer() {
     }
     defer conn.Close()
 
+    memberone := &pb.MembershipInfo{
+        MemberID: Id,
+    }
     // Create a SWIMMessage and send it to the introducer
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_JOIN,
         Sender: SelfAddress,
         Target: INTRODUCER_ADDRESS,
-        MembershipInfo: []*pb.MembershipInfo{
-            {
-                MemberID: Id,
-            },
-        },
+        Membership: []*pb.MembershipInfo{memberone},
     }
     
     fmt.Println("Sending JOIN message to Introducer from", SelfAddress)
-    utils.send_message(conn, INTRODUCER_ADDRESS, message)
+    utils.SendMessage(conn, INTRODUCER_ADDRESS, message)
     
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
@@ -152,13 +152,12 @@ func startServer() {
             fmt.Println("Error reading from connection:", err)
             continue
         }
-        
-        // Unmarshal the protobuf message
-        var message *pb.SWIMMessage 
-        message, err = utils.read_message(conn)
+
+        var message pb.SWIMMessage
+        err = proto.Unmarshal(buffer[:n], &message)
         if err != nil {
-            fmt.Println("Failed to unmarshal message: in start server stage", err)
-            return
+            fmt.Println("Failed to unmarshal message:", err)
+            continue
         }
 
         handleGossip(message)
@@ -166,20 +165,20 @@ func startServer() {
         //  received message
         fmt.Printf("Received message: %+v\n", message)
 
-        if message.Type == pb.SWIMMessage_PING {
+        if message.Type == pb.SWIMMessage_DIRECT_PING {
             // Response to ping
             // Create a SWIMMessage to send
 
-            gossiplist := get_gossiplist(global.GossipNodes)
+            gossiplist := utils.GetGossiplist(global.GossipNodes)
 
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: SelfAddress,
                 Target: message.Sender,
-                MembershipInfo : gossipNodelist,
+                Membership : gossiplist,
             }
             
-            utils.send_message(conn, addr, response)
+            utils.SendMessage(conn, addr, response)
         	fmt.Println("Message success ping to server")
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
@@ -190,17 +189,17 @@ func startServer() {
                 return
             }
             
-            gossiplist := get_gossiplist(global.GossipNodes)
+            gossiplist := utils.GetGossiplist(global.GossipNodes)
 
             // Create a PING message with the same sender and target
             pingMessage := &pb.SWIMMessage{
-                Type: pb.SWIMMessage_PING,
+                Type: pb.SWIMMessage_INDIRECT_PING,
                 Sender: message.Sender,
                 Target: message.Target,
-                MembershipInfo: gossiplist,
+                Membership: gossiplist,
             }
             
-            utils.send_message(conn, targetAddr, pingMessage)
+            utils.SendMessage(conn, targetAddr, pingMessage)
 
             fmt.Println("PING message success sent to target node")
 
@@ -224,7 +223,7 @@ func startServer() {
                 return
             }
             GossipNodesMutex.Lock()
-            global.GossipNodes[message.Membership[0].MemberID] = global.GossipNode{ID: message.Membership[0].MemberID, Address: message.Sender, State: Join, Incarnation: 0, Time: time.Now()}
+            global.GossipNodes[message.Membership[0].MemberID] = global.GossipNode{ID: message.Membership[0].MemberID, Address: message.Sender, State: global.Join, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
 		} else if message.Type == pb.SWIMMessage_PONG {
 			// This is the ack from relay message, send ack back to the sender.
@@ -234,16 +233,16 @@ func startServer() {
                 return
             }
             
-            gossiplist := get_gossiplist(global.GossipNodes)
+            gossiplist := utils.GetGossiplist(global.GossipNodes)
             // Create a SWIMMessage to send
             pongMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: message.Sender,
                 Target: message.Target,
-                MembershipInfo: gossiplist,
+                Membership: gossiplist,
             }
             
-            utils.send_message(conn, targetAddr, pongMessage)
+            utils.SendMessage(conn, targetAddr, pongMessage)
 
             fmt.Println("Relay Message sent to server")
 
@@ -259,7 +258,7 @@ func startClient() {
 
 	var nodesArray []global.NodeInfo
 	NodesMutex.Lock()
-    for _, node := range Nodes {
+    for _, node := range global.Nodes {
         nodesArray = append(nodesArray, node)
     }
 	NodesMutex.Unlock()
@@ -268,7 +267,7 @@ func startClient() {
 		nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
 	})
 
-	ticker := time.NewTicker(PROTOCOL_PERIOD * time.Second) // Ping every PROTOCOL_PERIOD seconds
+	ticker := time.NewTicker(time.Duration(PROTOCOL_PERIOD) * time.Second) // Ping every PROTOCOL_PERIOD seconds
     defer ticker.Stop()
 
 	for {
@@ -299,7 +298,7 @@ func getRandomNodes(n int) []global.NodeInfo {
 
     keys := make([]string, 0, len(global.Nodes))
     
-    for k := range Nodes {
+    for k := range global.Nodes {
         keys = append(keys, k)
     }
 
@@ -320,7 +319,7 @@ func getRandomNodes(n int) []global.NodeInfo {
     return randomNodes
 }
 
-func pingIndirect(node global.NodeInfo) {
+func pingIndirect(node global.NodeInfo) bool {
     // TODO: implement the logic to ping the indirect node
     randomNodes := getRandomNodes(3)
     resultChan := make(chan bool, len(randomNodes))
@@ -332,13 +331,13 @@ func pingIndirect(node global.NodeInfo) {
             defer wg.Done()
             
             // Construct GossipMessage
-            gossiplist := get_gossiplist(global.GossipNodes)
+            gossiplist := utils.GetGossiplist(global.GossipNodes)
 
             indirectPingMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_INDIRECT_PING,
                 Sender: SelfAddress,
                 Target: node.Address, // Assuming NodeInfo has an Address field
-                GossipNodelist: gossiplist,
+                Membership: gossiplist,
             }
 
             // Serialize the INDIRECT_PING message using protobuf
@@ -356,6 +355,14 @@ func pingIndirect(node global.NodeInfo) {
                 resultChan <- false
                 return
             }
+
+            conn, err := net.DialUDP("udp", nil, randomNodeAddr)
+            if err != nil {
+                fmt.Println("Failed to dial random node:", err)
+                resultChan <- false
+                return
+            }
+            defer conn.Close()
             
             // Send the INDIRECT_PING message to the random node
             _, err = conn.WriteTo(data, randomNodeAddr)
@@ -431,22 +438,22 @@ func pingServer(node global.NodeInfo) {
 
             // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: Down, Incarnation: 0, Time: time.Now()}
+            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
         }
         return
     }
 
     // TODO: Send a PING message to the server
-    gossiping := get_gossiplist(global.GossipNodes)
+    gossiping := utils.GetGossiplist(global.GossipNodes)
 
     message := &pb.SWIMMessage{
-        Type:   pb.SWIMMessage_PING,
+        Type:   pb.SWIMMessage_INDIRECT_PING,
         Sender: SelfAddress,
         Target: node.Address,
-        MembershipInfo: gossiping,
+        Membership: gossiping,
     }
-    utils.send_message(conn, node.Address, message)
+    utils.SendMessage(conn, node.Address, message)
 
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
@@ -454,7 +461,7 @@ func pingServer(node global.NodeInfo) {
     buffer := make([]byte, 1024)
     n, err := conn.Read(buffer)
     if err != nil {
-        fmt.Printf("No response from %s: %v\n", node.address, err)
+        fmt.Printf("No response from %s: %v\n", node.Address, err)
         // TODO: Handle the case where the node is down
 
         rst := pingIndirect(node)
@@ -467,7 +474,7 @@ func pingServer(node global.NodeInfo) {
 
             // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: Down, Incarnation: 0, Time: time.Now()}
+            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
         }
         return
@@ -488,30 +495,30 @@ func pingServer(node global.NodeInfo) {
 }
 
 func handleGossip(message pb.SWIMMessage) {
-    for _, Membership := range message.MembershipInfo {
-        if Membership.Status == "Down" {
+    for _, Membership := range message.Membership {
+        if Membership.MemberStatus == utils.MapState(global.Down) {
             // delete the node from the Nodes list
-            _, exists := global.Nodes[Membership.memberID];
+            _, exists := global.Nodes[Membership.MemberID];
             if exists {
                 NodesMutex.Lock()
-                delete(global.Nodes, Membership.memberID)
+                delete(global.Nodes, Membership.MemberID)
                 NodesMutex.Unlock()
 
                 // add the node to the GossipNodes list
                 GossipNodesMutex.Lock()
-                global.GossipNodes[Membership.memberID] = global.GossipNode{ID: Membership.memberID, Address: Membership.memberAddress, State: Down, Incarnation: 0, Time: time.Now()}
+                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Down, Incarnation: 0, Time: time.Now()}
                 GossipNodesMutex.Unlock()
             }
-        } else if Membership.Status == "Join" {
+        } else if Membership.MemberStatus == utils.MapState(global.Join) {
             // add the node to the Nodes list
-            _, exists := global.Nodes[Membership.memberID];
+            _, exists := global.Nodes[Membership.MemberID];
             if !exists {
                 NodesMutex.Lock()
-                global.Nodes[Membership.memberID] = global.NodeInfo{ID: Membership.memberID, Address: Membership.memberAddress, State: global.Alive}
+                global.Nodes[Membership.MemberID] = global.NodeInfo{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive}
                 NodesMutex.Unlock()
 
                 GossipNodesMutex.Lock()
-                global.GossipNodes[Membership.memberID] = global.GossipNode{ID: Membership.memberID, Address: Membership.memberAddress, State: Join, Incarnation: 0, Time: time.Now()}
+                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Join, Incarnation: 0, Time: time.Now()}
                 GossipNodesMutex.Unlock()
             }
         }
