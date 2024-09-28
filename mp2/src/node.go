@@ -32,6 +32,7 @@ type GossipNode struct {
     Address string
     State State
     Incarnation int
+    Time time.Time
 }
 
 var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
@@ -370,6 +371,8 @@ func pingServer(address string) {
         GossipNodesMutex.Lock()
         GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
         GossipNodesMutex.Unlock()
+
+        pingIndirect(address)
         return
     }
     defer conn.Close()
@@ -417,6 +420,8 @@ func pingServer(address string) {
         GossipNodesMutex.Lock()
         GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0}
         GossipNodesMutex.Unlock()
+
+        pingIndirect(address)
         return
     }
 
@@ -428,6 +433,44 @@ func pingServer(address string) {
         fmt.Printf("Failed to unmarshal message: %v\n", err)
         return
     }
+
+    // Update the state of the node
+    for _, Membership := range response.MembershipInfo {
+        if Membership.Status == "Down" {
+            // delete the node from the Nodes list
+            Delete_id = Address_to_ID(address)
+            for _, node := range Nodes {
+                if node.ID == Delete_id {
+                    NodesMutex.Lock()
+                    delete(Nodes, node.ID)
+                    NodesMutex.Unlock()
+                    break
+                }
+            }
+
+            // add the node to the GossipNodes list
+            GossipNodesMutex.Lock()
+            _, exists := GossipNodes[Delete_id]; 
+            if exists {
+                // if gossipNodes is not empty, check if the node is already in the list
+                for _, node := range GossipNodes {
+                    if node.ID == Delete_id {
+                        // check time if the time is too long then delete the node from the GossipNodes list
+                        
+                    }
+                }
+            }
+            else {
+                // not exist
+                GossipNodes[Delete_id] = GossipNode{ID: Delete_id, Address: address, State: Down, Incarnation: 0, Time: time.Now()}
+            }
+
+            GossipNodesMutex.Unlock()
+            return
+        }
+    }   
+
+
 
 
 
