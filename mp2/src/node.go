@@ -213,7 +213,7 @@ func startServer() {
             messages := &pb.SWIMMessage{
                 
 
-
+            }
 
         } else if message.Type == pb.SWIMMessage_JOIN {
 			if not Introducer continue
