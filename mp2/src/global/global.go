@@ -43,5 +43,6 @@ const (
     Suspected State = iota
     Alive
     Down
+    Join
 )
 

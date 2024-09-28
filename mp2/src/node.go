@@ -16,15 +16,15 @@ import (
 )
 
 
-func Address_to_ID(address string) string {
-    NodesMutex.Lock()
-    for _, node := range Nodes {
-        if node.Address == address {
-            return node.ID
-        }
-    }
-    NodesMutex.Unlock()
-}
+// func Address_to_ID(address string) string {
+//     NodesMutex.Lock()
+//     for _, node := range Nodes {
+//         if node.Address == address {
+//             return node.ID
+//         }
+//     }
+//     NodesMutex.Unlock()
+// }
 
 func main(){
 	introducerFlag := flag.Bool("introducer", false, "Set this flag to true if this node is the introducer")
@@ -147,6 +147,8 @@ func startServer() {
             return
         }
 
+        handleGossip(response)
+
         //  received message
         fmt.Printf("Received message: %+v\n", message)
 
@@ -192,7 +194,7 @@ func startServer() {
 			if not Introducer continue
 			NodesMutex.Lock()
             // Add the new node to the list of nodes
-            Nodes[message.sender] = NodeInfo{ID: message.membership[0].memberID , Address: message.sender, State: Alive}
+            Nodes[message.Sender] = NodeInfo{ID: message.Membership[0].MemberID , Address: message.Sender, State: Alive}
             
             jsonData, err := json.Marshal(Nodes)
             if err != nil {
@@ -206,7 +208,7 @@ func startServer() {
                 return
             }
             GossipNodesMutex.Lock()
-            GossipNodes[message.membership[0].memberID] = {ID: Membership.memberID, Address: Membership.memberAddress, State: Join, Incarnation: 0, Time: time.Now()}
+            GossipNodes[message.Membership[0].MemberID] = {ID: message.Membership[0].MemberID, Address: message.Sender, State: Join, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
 		} else message.Type == pb.SWIMMessage_PONG {
 			// This is the ack from relay message, send ack back to the sender.
@@ -218,14 +220,14 @@ func startServer() {
             
             gossiplist := get_gossiplist(GossipNodes)
             // Create a SWIMMessage to send
-            requests := &pb.SWIMMessage{
+            pongMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
                 Sender: message.Sender,
                 Target: message.Target,
                 MembershipInfo: gossiplist
             }
             
-            send_message(conn, targetAddr, requests)
+            send_message(conn, targetAddr, pongMessage)
 
             fmt.Println("Relay Message sent to server")
 
@@ -369,6 +371,7 @@ func pingIndirect(node NodeInfo) {
                 resultChan <- false
                 return
             }
+            handleGossip(responseMessage)
 
             // Check if the message type is PONG
             if responseMessage.Type == pb.SWIMMessage_PONG {
@@ -396,10 +399,10 @@ func pingIndirect(node NodeInfo) {
 }
 
 func pingServer(node NodeInfo) {  
-    conn, err := net.DialTimeout("udp", node.address, TIMEOUT_PERIOD * time.Second)
+    conn, err := net.DialTimeout("udp", node.Address, TIMEOUT_PERIOD * time.Second)
     defer conn.Close()
     if err != nil {
-        fmt.Printf("Failed to ping %s: %v\n", node.address, err)
+        fmt.Printf("Failed to ping %s: %v\n", node.Address, err)
         // TODO: Handle the case where the direct node is down
 
         rst := pingIndirect(node)
@@ -412,7 +415,7 @@ func pingServer(node NodeInfo) {
 
             // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0}
+            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.Address, State: Down, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
         }
         return
@@ -424,10 +427,10 @@ func pingServer(node NodeInfo) {
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_PING,
         Sender: SelfAddress,
-        Target: node.address,
+        Target: node.Address,
         MembershipInfo: gossiping
     }
-    send_message(conn, node.address, message)
+    send_message(conn, node.Address, message)
 
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(TIMEOUT_PERIOD * time.Second))
@@ -448,7 +451,7 @@ func pingServer(node NodeInfo) {
 
             // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.address, State: Down, Incarnation: 0}
+            GossipNodes[node.ID] = GossipNode{ID: node.ID, Address: node.Address, State: Down, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
         }
         return
