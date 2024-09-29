@@ -99,9 +99,7 @@ func main (){
 	
 		fmt.Println("Received message from select node lsg:")
 		for _, node := range response {
-			for key, value := range node {
-				fmt.Println(key, value)
-			}
+			fmt.Println(node)
 		}
 	
 	} else if *command == "on" {
