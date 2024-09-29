@@ -367,7 +367,6 @@ func getRandomNodes(n int) []global.NodeInfo {
 
 func pingIndirect(node global.NodeInfo) bool {
     // TODO: implement the logic to ping the indirect node
-    // return true
     randomNodes := getRandomNodes(3)
     resultChan := make(chan bool, len(randomNodes))
     var wg sync.WaitGroup
@@ -498,6 +497,7 @@ func pingServer(node global.NodeInfo) {
         }
         return
     }
+    defer conn.Close()
 
     // TODO: Send a PING message to the server
     GossipNodesMutex.Lock()
