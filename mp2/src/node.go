@@ -260,6 +260,11 @@ func startServer() {
             continue
         }
 
+        if rand.Float64() < global.DropRate {
+            fmt.Println("Dropping packet from", addr)
+            continue
+        }
+
         var message pb.SWIMMessage
         err = proto.Unmarshal(buffer[:n], &message)
         if err != nil {
