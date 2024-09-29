@@ -31,8 +31,8 @@ var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
 // listen the command from other machine
 var COMMAND_PORT = "8082"
-var PROTOCOL_PERIOD = 0.5
-var TIMEOUT_PERIOD = 0.2
+var PROTOCOL_PERIOD = 1.0
+var TIMEOUT_PERIOD = 1.0
 var SUSPECT_TIMEOUT = 5.0
 
 var Introducer = false
@@ -560,7 +560,7 @@ func pingServer(node global.NodeInfo) {
     }
 
     conn, err := net.DialUDP("udp", nil, udpAddr)
-    if err == nil {
+    if err != nil {
         fmt.Printf("Failed to ping %s: %v\n", node.Address, err)
         // TODO: Handle the case where the direct node is down
 
@@ -612,7 +612,7 @@ func pingServer(node global.NodeInfo) {
     // Send the message using WriteToUDP
     _, err = conn.Write(data)
     if err != nil {
-        fmt.Printf("Failed to send message: %v\n", err)
+        fmt.Printf("Failed to send message in ping server: %v\n", err)
     }
 
     // Set a read deadline for the response
