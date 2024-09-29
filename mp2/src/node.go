@@ -29,8 +29,8 @@ import (
 
 var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
-var PROTOCOL_PERIOD = 0.25
-var TIMEOUT_PERIOD = 0.1
+var PROTOCOL_PERIOD = 5.0
+var TIMEOUT_PERIOD = 2.0
 var SUSPECT_TIMEOUT = 30
 
 var Introducer = false
@@ -141,20 +141,24 @@ func dialIntroducer() {
 }
 
 func startServer() {
-	addr := ":" + PORT
-    conn, err := net.ListenPacket("udp", addr)
+    addr, err := net.ResolveUDPAddr("udp", ":" + PORT)
+	if err != nil {
+		fmt.Println("Error resolving address:", err)
+		return
+	}
+    
+    conn, err := net.ListenUDP("udp", addr)
     if err != nil {
         fmt.Println("Error starting server:", err)
         return
     }
     defer conn.Close()
-    conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
     fmt.Println("Server started on", addr)
 
     buffer := make([]byte, 4096)
     for {
-        n, addr, err := conn.ReadFrom(buffer)
+        n, addr, err := conn.ReadFromUDP(buffer)
         if err != nil {
             fmt.Println("Error reading from connection:", err)
             continue
@@ -192,7 +196,8 @@ func startServer() {
                 fmt.Printf("Failed to marshal message: %v\n", err)
                 return
             }
-            _, err = conn.WriteTo(data, addr) // Use Write method instead of WriteTo
+            fmt.Println("Sending PONG message to", addr)
+            _, err = conn.WriteToUDP(data, addr) // Use Write method instead of WriteTo
             if err != nil {
                 fmt.Printf("Failed to send message: %v\n", err)
             }
@@ -213,7 +218,7 @@ func startServer() {
 
             // Create a PING message with the same sender and target
             pingMessage := &pb.SWIMMessage{
-                Type: pb.SWIMMessage_INDIRECT_PING,
+                Type: pb.SWIMMessage_DIRECT_PING,
                 Sender: message.Sender,
                 Target: message.Target,
                 Membership: gossiplist,
@@ -224,7 +229,7 @@ func startServer() {
                 fmt.Printf("Failed to marshal message: %v\n", err)
                 return
             }
-            _, err = conn.WriteTo(data, targetAddr) // Use Write method instead of WriteTo
+            _, err = conn.WriteToUDP(data, targetAddr) // Use Write method instead of WriteTo
             if err != nil {
                 fmt.Printf("Failed to send message: %v\n", err)
             }
@@ -245,7 +250,7 @@ func startServer() {
                 os.Exit(1)
             }
             NodesMutex.Unlock()
-            _, err = conn.WriteTo(jsonData, addr)
+            _, err = conn.WriteToUDP(jsonData, addr)
             if err != nil {
                 fmt.Println("Failed to response to JOIN message:", err)
                 return
@@ -277,7 +282,7 @@ func startServer() {
                 fmt.Printf("Failed to marshal message: %v\n", err)
                 return
             }
-            _, err = conn.WriteTo(data, targetAddr) // Use Write method instead of WriteTo
+            _, err = conn.WriteToUDP(data, targetAddr) // Use Write method instead of WriteTo
             if err != nil {
                 fmt.Printf("Failed to send message: %v\n", err)
             }
@@ -362,6 +367,7 @@ func getRandomNodes(n int) []global.NodeInfo {
 
 func pingIndirect(node global.NodeInfo) bool {
     // TODO: implement the logic to ping the indirect node
+    // return true
     randomNodes := getRandomNodes(3)
     resultChan := make(chan bool, len(randomNodes))
     var wg sync.WaitGroup
@@ -376,13 +382,27 @@ func pingIndirect(node global.NodeInfo) bool {
             gossiplist := utils.GetGossiplist(global.GossipNodes)
             GossipNodesMutex.Unlock()
 
+            
+            addr, err := net.ResolveUDPAddr("udp", node.Address)
+            if err != nil {
+                fmt.Println("Error resolving server address:", err)
+                return
+            }
+
+            conn, err := net.DialUDP("udp", nil, addr)
+            if err != nil {
+                fmt.Println("Failed to dial random node:", err)
+                resultChan <- false
+                return
+            }
+            defer conn.Close()
+
             indirectPingMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_INDIRECT_PING,
-                Sender: SelfAddress,
+                Sender: conn.LocalAddr().String(),
                 Target: node.Address, // Assuming NodeInfo has an Address field
                 Membership: gossiplist,
             }
-
             // Serialize the INDIRECT_PING message using protobuf
             data, err := proto.Marshal(indirectPingMessage)
             if err != nil {
@@ -390,14 +410,6 @@ func pingIndirect(node global.NodeInfo) bool {
                 resultChan <- false
                 return
             }
-
-            conn, err := net.DialTimeout("udp", rNode.Address, 3 * time.Duration(TIMEOUT_PERIOD) * time.Second)
-            if err != nil {
-                fmt.Println("Failed to dial random node:", err)
-                resultChan <- false
-                return
-            }
-            defer conn.Close()
 
             // Set a write deadline for the connection
             conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
@@ -417,7 +429,7 @@ func pingIndirect(node global.NodeInfo) bool {
             conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
             // Read from the connection
-            n, err := conn.Read(buffer)
+            n, _, err := conn.ReadFromUDP(buffer)
             if err != nil {
                 fmt.Println("Failed to read from connection:", err)
                 resultChan <- false
@@ -460,8 +472,13 @@ func pingIndirect(node global.NodeInfo) bool {
 }
 
 func pingServer(node global.NodeInfo) {  
-    conn, err := net.DialTimeout("udp", node.Address, time.Duration(TIMEOUT_PERIOD) * time.Second)
-    defer conn.Close()
+    udpAddr, err := net.ResolveUDPAddr("udp", node.Address)
+    if err != nil {
+        fmt.Printf("Failed to resolve address %s: %v\n", node.Address, err)
+        return
+    }
+
+    conn, err := net.DialUDP("udp", nil, udpAddr)
     if err != nil {
         fmt.Printf("Failed to ping %s: %v\n", node.Address, err)
         // TODO: Handle the case where the direct node is down
@@ -488,8 +505,8 @@ func pingServer(node global.NodeInfo) {
     GossipNodesMutex.Unlock()
 
     message := &pb.SWIMMessage{
-        Type:   pb.SWIMMessage_INDIRECT_PING,
-        Sender: SelfAddress,
+        Type:   pb.SWIMMessage_DIRECT_PING,
+        Sender: conn.LocalAddr().String(),
         Target: node.Address,
         Membership: gossiping,
     }
@@ -499,7 +516,12 @@ func pingServer(node global.NodeInfo) {
         fmt.Printf("Failed to marshal message: %v\n", err)
         return
     }
-    _, err = conn.Write(data) // Use Write method instead of WriteTo
+
+    // Set a read deadline for the response
+    conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
+
+    // Send the message using WriteToUDP
+    _, err = conn.Write(data)
     if err != nil {
         fmt.Printf("Failed to send message: %v\n", err)
     }
@@ -507,8 +529,8 @@ func pingServer(node global.NodeInfo) {
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
-    buffer := make([]byte, 1024)
-    n, err := conn.Read(buffer)
+    buffer := make([]byte, 4096)
+    n, _, err := conn.ReadFromUDP(buffer)
     if err != nil {
         fmt.Printf("No response from %s: %v\n", node.Address, err)
         // TODO: Handle the case where the node is down
