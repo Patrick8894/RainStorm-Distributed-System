@@ -16,6 +16,7 @@ message SWIMMessage {
   MessageType type = 1;
   string sender = 2;
   string target = 3;
+  string target_id = 4;
   repeated MembershipInfo membership = 10; // For gossiping membership info
 }
 

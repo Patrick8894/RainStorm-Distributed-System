@@ -118,7 +118,7 @@ func startHandlecommand() {
         command := string(buffer[:n])
         fmt.Println("Received command:", command)
 
-        if command == "list" {
+        if command == "ls" {
             // send the list of nodes to the sender
             NodesMutex.Lock()
             jsonData, err := json.Marshal(global.Nodes)
@@ -146,6 +146,7 @@ func startHandlecommand() {
             fmt.Println("Received kill command, shutting down...")
             os.Exit(0)
         }
+    }
 }
 
 func dialIntroducer() {
