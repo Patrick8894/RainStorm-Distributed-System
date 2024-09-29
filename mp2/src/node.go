@@ -48,11 +48,12 @@ func main(){
 
 	Introducer = *introducerFlag
 
-	Hostname, err := os.Hostname()
+	hostname, err := os.Hostname()
     if err != nil {
         fmt.Println("Error getting hostname:", err)
         return
     }
+    Hostname = hostname
 
     SelfAddress = Hostname + ":" + PORT
 	fmt.Println("Node ID:", Id)
@@ -570,7 +571,7 @@ func pingServer(node global.NodeInfo) {
         if rst == false {
             GossipNodesMutex.Lock()
             if global.Protocol == global.SWIM_PROROCOL {
-                
+                fmt.Println("SWIM_PROROCOL; nodeId: ", node.ID)
                 delete(global.Nodes, node.ID)
 
                 // add the node to the GossipNodes list
@@ -578,7 +579,7 @@ func pingServer(node global.NodeInfo) {
                 
                 
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
-                
+                fmt.Println("SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
             }
@@ -631,11 +632,13 @@ func pingServer(node global.NodeInfo) {
             // delete the node from the Nodes list
             GossipNodesMutex.Lock()
             if global.Protocol == global.SWIM_PROROCOL {
+                fmt.Println("SWIM_PROROCOL; nodeId: ", node.ID)
                 delete(global.Nodes, node.ID)
                 // add the node to the GossipNodes list
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
                 
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
+                fmt.Println("SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
             }
