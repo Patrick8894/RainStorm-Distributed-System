@@ -29,6 +29,8 @@ import (
 
 var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
+// listen the command from other machine
+var COMMAND_PORT = "8082"
 var PROTOCOL_PERIOD = 2.0
 var TIMEOUT_PERIOD = 1.5
 var SUSPECT_TIMEOUT = 30
@@ -66,7 +68,7 @@ func main(){
 	rand.Seed(time.Now().UnixNano())
 
 	var wg sync.WaitGroup
-    wg.Add(2)
+    wg.Add(3)
 
 	go func() {
         defer wg.Done()
@@ -78,8 +80,72 @@ func main(){
         startClient()
     }()
 
+    go func () {
+        defer wg.Done()
+        startHandlecommand()
+    }()
+
 	wg.Wait()
 
+}
+
+func startHandlecommand() {
+    var COMMAND_ADDRESS = SelfAddress + ":" + COMMAND_PORT
+    addr, err := net.ResolveUDPAddr("udp", ":" + COMMAND_PORT)
+    if err != nil {
+        fmt.Println("Error resolving in Command server address:", err)
+        return
+    }
+
+    conn, err := net.ListenUDP("udp", addr)
+    if err != nil {
+        fmt.Println("Error starting Command server:", err)
+        return
+    }
+    defer conn.Close()
+
+    fmt.Println("Command server started on", addr)
+
+    buffer := make([]byte, 4096)
+    for {
+        n, addr, err := conn.ReadFromUDP(buffer)
+        if err != nil {
+            fmt.Println("Error reading from connection:", err)
+            continue
+        }
+
+        // read the command from buffer
+        command := string(buffer[:n])
+        fmt.Println("Received command:", command)
+
+        if command == "list" {
+            // send the list of nodes to the sender
+            NodesMutex.Lock()
+            jsonData, err := json.Marshal(global.Nodes)
+            if err != nil {
+                fmt.Println("Error serializing data:", err)
+                os.Exit(1)
+            }
+            NodesMutex.Unlock()
+            _, err = conn.WriteToUDP(jsonData, addr)
+            if err != nil {
+                fmt.Println("Failed to response to command message:", err)
+                return
+            }
+        }
+        else if command == "on" {
+            // turn on the suspect protocol
+            global.PROTOCOL = gloabl.SWIM_SUSPIECT_PROROCOL
+        }
+        else if command == "off" {
+            // turn off the suspect protocol, maintain the SWIM PINGACK protocl
+            global.PROTOCOL = gloabl.SWIM_PROROCOL
+        }
+        else if coomand == "kill"{
+            // kill the node.go
+            fmt.Println("Received kill command, shutting down...")
+            os.Exit(0)
+        }
 }
 
 func dialIntroducer() {
@@ -111,7 +177,7 @@ func dialIntroducer() {
         fmt.Printf("Failed to marshal message: %v\n", err)
         return
     }
-    _, err = conn.Write(data) // Use Write method instead of WriteTo
+    _, err = conn.Write(data)
     if err != nil {
         fmt.Printf("Failed to send message: %v\n", err)
     }
@@ -172,7 +238,8 @@ func startServer() {
             fmt.Println("Failed to unmarshal message:", err)
             continue
         }
-
+        
+        // merge the gossip list
         handleGossip(message)
 
         //  received message

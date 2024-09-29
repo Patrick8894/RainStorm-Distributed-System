@@ -20,11 +20,15 @@ type GossipNode struct {
 }
 
 
+const (
+    SWIM_PROROCOL = 0
+    SWIM_SUSPIECT_PROROCOL = 1
+)
 
 
 var Nodes = make(map[string]NodeInfo)
 var GossipNodes = make(map[string]GossipNode)
-
+var Protocol = SWIM_PROROCOL
 
 type State int
 
