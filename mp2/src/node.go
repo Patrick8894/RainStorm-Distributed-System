@@ -742,6 +742,7 @@ func checkSuspected() {
         for id, suspectTime := range global.SuspectedNodes {
             if suspectTime.Before(time.Now().Add(-time.Duration(SUSPECT_TIMEOUT) * time.Second)) {
                 delete(global.SuspectedNodes, id)
+                delete(global.Nodes, id)
                 global.GossipNodes[id] = global.GossipNode{ID: id, Address: global.Nodes[id].Address, State: global.Down, Incarnation: 0, Time: time.Now()}
             }
         }
