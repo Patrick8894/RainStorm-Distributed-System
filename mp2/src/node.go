@@ -135,6 +135,8 @@ func dialIntroducer() {
         return
     }
 
+    fmt.Println("Received message from Introducer:", response)
+
     NodesMutex.Lock()
     global.Nodes = response
     NodesMutex.Unlock()
