@@ -34,7 +34,7 @@ func GetGossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInf
     for _, GossipNode := range GossipNodes {
 
 		// check if the gossipnode is timeout or not
-		if GossipNode.Time.Before(time.Now().Add( time.Duration(GOSSIP_TIMEOUT) * time.Second)) {
+		if GossipNode.Time.Before(time.Now().Add(-time.Duration(GOSSIP_TIMEOUT) * time.Second)) {
 			continue
 		}
 
