@@ -144,7 +144,7 @@ func startHandlecommand() {
         } else if command == "lsg" {
             // send the list of nodes to the sender
             GossipNodesMutex.Lock()
-            jsonData, err := json.Marshal(global.GossipNodes)
+            jsonData, err := json.Marshal(get_gossiplist(gossipNodes))
             if err != nil {
                 fmt.Println("Error serializing data:", err)
                 os.Exit(1)
