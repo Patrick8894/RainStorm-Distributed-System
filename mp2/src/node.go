@@ -90,8 +90,8 @@ func main(){
 }
 
 func startHandlecommand() {
-    var COMMAND_ADDRESS = SelfAddress + ":" + COMMAND_PORT
-    addr, err := net.ResolveUDPAddr("udp", ":" + COMMAND_PORT)
+    var COMMAND_ADDRESS = SelfAddress + ":" + global.COMMAND_PORT
+    addr, err := net.ResolveUDPAddr("udp", ":" + COMMAND_ADDRESS)
     if err != nil {
         fmt.Println("Error resolving in Command server address:", err)
         return
@@ -132,16 +132,13 @@ func startHandlecommand() {
                 fmt.Println("Failed to response to command message:", err)
                 return
             }
-        }
-        else if command == "on" {
+        } else if command == "on" {
             // turn on the suspect protocol
-            global.PROTOCOL = gloabl.SWIM_SUSPIECT_PROROCOL
-        }
-        else if command == "off" {
+            global.Protocol = global.SWIM_SUSPIECT_PROROCOL
+        } else if command == "off" {
             // turn off the suspect protocol, maintain the SWIM PINGACK protocl
-            global.PROTOCOL = gloabl.SWIM_PROROCOL
-        }
-        else if coomand == "kill"{
+            global.Protocol = global.SWIM_PROROCOL
+        } else if command == "kill"{
             // kill the node.go
             fmt.Println("Received kill command, shutting down...")
             os.Exit(0)
