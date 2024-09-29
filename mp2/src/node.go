@@ -33,13 +33,13 @@ var PORT = "8081"
 var COMMAND_PORT = "8082"
 var PROTOCOL_PERIOD = 2.0
 var TIMEOUT_PERIOD = 1.5
-var SUSPECT_TIMEOUT = 30
+var SUSPECT_TIMEOUT = 5.0
 
 var Introducer = false
-var NodesMutex sync.Mutex
 var GossipNodesMutex sync.Mutex
 var Id = ""
 var SelfAddress = ""
+var Hostname = ""
 
 func main(){
 	introducerFlag := flag.Bool("introducer", false, "Set this flag to true if this node is the introducer")
@@ -48,18 +48,18 @@ func main(){
 
 	Introducer = *introducerFlag
 
-	hostname, err := os.Hostname()
+	Hostname, err := os.Hostname()
     if err != nil {
         fmt.Println("Error getting hostname:", err)
         return
     }
 
-    SelfAddress = hostname + ":" + PORT
-	Id = hostname + ":" + PORT + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
+    SelfAddress = Hostname + ":" + PORT
 	fmt.Println("Node ID:", Id)
 
 	if Introducer {
-		global.Nodes[Id] = global.NodeInfo{ID: Id, Address: hostname + ":" + PORT, State: global.Alive}
+        Id = Hostname + ":" + PORT + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
+		global.Nodes[Id] = global.NodeInfo{ID: Id, Address: Hostname + ":" + PORT, State: global.Alive}
 	} else {
 		dialIntroducer()
 	}
@@ -68,7 +68,7 @@ func main(){
 	rand.Seed(time.Now().UnixNano())
 
 	var wg sync.WaitGroup
-    wg.Add(3)
+    wg.Add(4)
 
 	go func() {
         defer wg.Done()
@@ -83,6 +83,11 @@ func main(){
     go func () {
         defer wg.Done()
         startHandlecommand()
+    }()
+
+    go func () {
+        defer wg.Done()
+        checkSuspected()
     }()
 
 	wg.Wait()
@@ -121,13 +126,13 @@ func startHandlecommand() {
 
         if command == "ls" {
             // send the list of nodes to the sender
-            NodesMutex.Lock()
+            GossipNodesMutex.Lock()
             jsonData, err := json.Marshal(global.Nodes)
             if err != nil {
                 fmt.Println("Error serializing data:", err)
                 os.Exit(1)
             }
-            NodesMutex.Unlock()
+            GossipNodesMutex.Unlock()
             fmt.Println("Received ls command, sending list of nodes...")
             _, err = conn.WriteToUDP(jsonData, addr)
             if err != nil {
@@ -154,6 +159,7 @@ func dialIntroducer() {
     // If the node is not the introducer, then send a JOIN message to the introducer
     // TODO: implement the logic to dial the Introducer and get the list of nodes
     fmt.Println("Dialing introducer...")
+    Id = Hostname + ":" + PORT + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
     conn, err := net.Dial("udp", INTRODUCER_ADDRESS)
     if err != nil {
@@ -205,9 +211,9 @@ func dialIntroducer() {
 
     fmt.Println("Received message from Introducer:", response)
 
-    NodesMutex.Lock()
+    GossipNodesMutex.Lock()
     global.Nodes = response
-    NodesMutex.Unlock()
+    GossipNodesMutex.Lock()
 }
 
 func startServer() {
@@ -250,6 +256,9 @@ func startServer() {
         if message.Type == pb.SWIMMessage_DIRECT_PING {
             // Response to ping
             // Create a SWIMMessage to send
+            if message.TargetId != gloabl.Id {
+                continue
+            }
 
             GossipNodesMutex.Lock()
             gossiplist := utils.GetGossiplist(global.GossipNodes)
@@ -292,6 +301,7 @@ func startServer() {
                 Type: pb.SWIMMessage_DIRECT_PING,
                 Sender: message.Sender,
                 Target: message.Target,
+                TargetId: message.TargetId,
                 Membership: gossiplist,
             }
             
@@ -311,7 +321,7 @@ func startServer() {
 			if !Introducer {
                 continue
             }
-			NodesMutex.Lock()
+			GossipNodesMutex.Lock()
             // Add the new node to the list of nodes
             global.Nodes[message.Sender] = global.NodeInfo{ID: message.Membership[0].MemberID , Address: message.Sender, State: global.Alive}
             
@@ -320,7 +330,7 @@ func startServer() {
                 fmt.Println("Error serializing data:", err)
                 os.Exit(1)
             }
-            NodesMutex.Unlock()
+            GossipNodesMutex.Unlock()
             _, err = conn.WriteToUDP(jsonData, addr)
             if err != nil {
                 fmt.Println("Failed to response to JOIN message:", err)
@@ -371,11 +381,11 @@ func startClient() {
 	curNode := 0
 
 	var nodesArray []global.NodeInfo
-	NodesMutex.Lock()
+	GossipNodesMutex.Lock()
     for _, node := range global.Nodes {
         nodesArray = append(nodesArray, node)
     }
-	NodesMutex.Unlock()
+	GossipNodesMutex.Unlock()
 
 	rand.Shuffle(len(nodesArray), func(i, j int) {
 		nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
@@ -392,12 +402,12 @@ func startClient() {
         case <-ticker.C:
             if curNode >= len(nodesArray) {
                 curNode = 0
-                NodesMutex.Lock()
+                GossipNodesMutex.Lock()
                 nodesArray = []global.NodeInfo{} // Clear the array
                 for _, node := range global.Nodes {
                     nodesArray = append(nodesArray, node)
                 }
-                NodesMutex.Unlock()
+                GossipNodesMutex.Unlock()
 
                 rand.Shuffle(len(nodesArray), func(i, j int) {
                     nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
@@ -411,7 +421,7 @@ func startClient() {
 }
 
 func getRandomNodes(n int) []global.NodeInfo {
-    NodesMutex.Lock()
+    GossipNodesMutex.Lock()
 
     keys := make([]string, 0, len(global.Nodes))
     
@@ -432,7 +442,7 @@ func getRandomNodes(n int) []global.NodeInfo {
         randomNodes = append(randomNodes, global.Nodes[keys[i]])
     }
 
-    NodesMutex.Unlock()
+    GossipNodesMutex.Unlock()
     return randomNodes
 }
 
@@ -471,6 +481,7 @@ func pingIndirect(node global.NodeInfo) bool {
                 Type:   pb.SWIMMessage_INDIRECT_PING,
                 Sender: conn.LocalAddr().String(),
                 Target: node.Address, // Assuming NodeInfo has an Address field
+                TargetId: node.ID,
                 Membership: gossiplist,
             }
             // Serialize the INDIRECT_PING message using protobuf
@@ -556,14 +567,20 @@ func pingServer(node global.NodeInfo) {
         rst := pingIndirect(node)
 
         if rst == false {
-            // delete the node from the Nodes list
-            NodesMutex.Lock()
-            delete(global.Nodes, node.ID)
-            NodesMutex.Unlock()
-
-            // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
+            if global.protocol == global.SWIM_PROROCOL {
+                
+                delete(global.Nodes, node.ID)
+
+                // add the node to the GossipNodes list
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
+                
+                
+            } else if global.protocol == global.SWIM_SUSPIECT_PROROCOL {
+                
+                global.SuspectedNodes[node.ID] = time.Now()
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
+            }
             GossipNodesMutex.Unlock()
         }
         return
@@ -579,6 +596,7 @@ func pingServer(node global.NodeInfo) {
         Type:   pb.SWIMMessage_DIRECT_PING,
         Sender: conn.LocalAddr().String(),
         Target: node.Address,
+        TargetId: node.ID,
         Membership: gossiping,
     }
 
@@ -610,13 +628,16 @@ func pingServer(node global.NodeInfo) {
         
         if rst == false {
             // delete the node from the Nodes list
-            NodesMutex.Lock()
-            delete(global.Nodes, node.ID)
-            NodesMutex.Unlock()
-
-            // add the node to the GossipNodes list
             GossipNodesMutex.Lock()
-            global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
+            if global.protocol == global.SWIM_PROROCOL {
+                delete(global.Nodes, node.ID)
+                // add the node to the GossipNodes list
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
+                
+            } else if global.protocol == global.SWIM_SUSPIECT_PROROCOL {
+                global.SuspectedNodes[node.ID] = time.Now()
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
+            }
             GossipNodesMutex.Unlock()
         }
         return
@@ -637,32 +658,61 @@ func pingServer(node global.NodeInfo) {
 }
 
 func handleGossip(message pb.SWIMMessage) {
+    GossipNodesMutex.Lock()
     for _, Membership := range message.Membership {
         if Membership.MemberStatus == utils.MapState(global.Down) {
+            if Membership.MemberID == Id {
+                DialIntroducer()
+                return
+            }
             // delete the node from the Nodes list
+            
             _, exists := global.Nodes[Membership.MemberID];
             if exists {
-                NodesMutex.Lock()
                 delete(global.Nodes, Membership.MemberID)
-                NodesMutex.Unlock()
-
                 // add the node to the GossipNodes list
-                GossipNodesMutex.Lock()
                 global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Down, Incarnation: 0, Time: time.Now()}
-                GossipNodesMutex.Unlock()
             }
         } else if Membership.MemberStatus == utils.MapState(global.Join) {
             // add the node to the Nodes list
             _, exists := global.Nodes[Membership.MemberID];
             if !exists {
-                NodesMutex.Lock()
                 global.Nodes[Membership.MemberID] = global.NodeInfo{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive}
-                NodesMutex.Unlock()
-
-                GossipNodesMutex.Lock()
                 global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Join, Incarnation: 0, Time: time.Now()}
-                GossipNodesMutex.Unlock()
+                
+            }
+        } else if Membership.MemberStatus == utils.MapState(global.Suspected) {
+            // add the node to the GossipNodes list
+            if Membership.MemberID == Id {         
+                global.Incarnation = int(Membership.MemberIncarnation) + 1
+                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: gloabl.Incarnation, Time: time.Now()}
+            } else {
+                if global.GossipNodes[Membership.MemberID].Incarnation <= int(Membership.MemberIncarnation) {
+                    global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Suspected, Incarnation: int(Membership.MemberIncarnation), Time: time.Now()}
+                }
+            }
+        } else if Membership.MemberStatus == utils.MapState(global.Alive) {
+            // add the node to the GossipNodes list
+            if global.GossipNodes[Membership.MemberID].Incarnation < int(Membership.MemberIncarnation) {
+                delete(global.SuspectedNodes, Membership.MemberID)
+                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: int(Membership.MemberIncarnation), Time: time.Now()}
+            }
+            
+        }
+    }
+    GossipNodesMutex.Unlock()
+}
+
+func checkSuspected() {
+    for {
+        time.Sleep(time.Duration(SUSPECT_TIMEOUT) * time.Second)
+        GossipNodesMutex.Lock()
+        for id, time := range global.SuspectedNodes {
+            if time.Before(time.Now().Add(-time.Duration(SUSPECT_TIMEOUT) * time.Second)) {
+                delete(global.SuspectedNodes, id)
+                global.GossipNodes[id] = global.GossipNode{ID: id, Address: global.Nodes[id].Address, State: global.Down, Incarnation: 0, Time: time.Now()}
             }
         }
+        GossipNodesMutex.Unlock()
     }
 }

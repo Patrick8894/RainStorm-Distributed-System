@@ -29,6 +29,8 @@ const (
 var Nodes = make(map[string]NodeInfo)
 var GossipNodes = make(map[string]GossipNode)
 var Protocol = SWIM_PROROCOL
+var SuspectedNodes = make(map[string]time.Time)
+var Incarnation = 0
 
 type State int
 
