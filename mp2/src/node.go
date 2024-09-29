@@ -32,8 +32,6 @@ var PORT = "8081"
 var PROTOCOL_PERIOD = 5
 var TIMEOUT_PERIOD = 1
 var SUSPECT_TIMEOUT = 30
-var DEAD_TIMEOUT = 60
-var ALIVE_TIMEOUT = 10
 
 var Introducer = false
 var NodesMutex sync.Mutex
@@ -150,6 +148,7 @@ func startServer() {
         return
     }
     defer conn.Close()
+    conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
     fmt.Println("Server started on", addr)
 
@@ -397,7 +396,7 @@ func pingIndirect(node global.NodeInfo) bool {
                 return
             }
 
-            conn, err := net.DialUDP("udp", nil, randomNodeAddr)
+            conn, err := net.DialTimeout("udp", randomNodeAddr, 3 * time.Duration(TIMEOUT_PERIOD) * time.Second)
             if err != nil {
                 fmt.Println("Failed to dial random node:", err)
                 resultChan <- false
@@ -417,7 +416,7 @@ func pingIndirect(node global.NodeInfo) bool {
             buffer := make([]byte, 4096)
 
             // Set a read deadline
-            conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+            conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
             // Read from the connection
             n, _, err := conn.ReadFrom(buffer)

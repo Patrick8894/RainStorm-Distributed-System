@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var DEAD_TIMEOUT = 60
+var GOSSIP_TIMEOUT = 60
 
 // Map global.State to pb.MembershipInfo_State
 func MapState(state global.State) pb.MembershipInfo_State {
@@ -33,7 +33,8 @@ func GetGossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInf
     for _, GossipNode := range GossipNodes {
 
 		// check if the gossipnode is timeout or not
-		if GossipNode.Time.Before(time.Now().Add( time.Duration(DEAD_TIMEOUT) * time.Second)) {
+		if GossipNode.Time.Before(time.Now().Add( time.Duration(GOSSIP_TIMEOUT) * time.Second)) {
+			delete(GossipNodes, GossipNode.ID)
 			continue
 		}
 
