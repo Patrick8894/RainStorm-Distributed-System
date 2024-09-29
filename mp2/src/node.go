@@ -264,9 +264,11 @@ func startServer() {
             continue
         }
 
-        if rand.Float64() < global.DropRate {
-            fmt.Println("Dropping packet from", addr)
-            continue
+        if !Introducer {
+            if rand.Float64() < global.DropRate {
+                fmt.Println("Dropping packet from", addr)
+                continue
+            }
         }
 
         var message pb.SWIMMessage
@@ -704,7 +706,9 @@ func handleGossip(message pb.SWIMMessage) {
     for _, Membership := range message.Membership {
         if Membership.MemberStatus == utils.MapState(global.Down) {
             if Membership.MemberID == Id {
-                dialIntroducer()
+                if !Introducer {
+                    dialIntroducer()
+                }
                 return
             }
             // delete the node from the Nodes list
