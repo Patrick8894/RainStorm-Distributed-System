@@ -256,7 +256,7 @@ func startServer() {
         if message.Type == pb.SWIMMessage_DIRECT_PING {
             // Response to ping
             // Create a SWIMMessage to send
-            if message.TargetId != gloabl.Id {
+            if message.TargetId != Id {
                 continue
             }
 
@@ -568,7 +568,7 @@ func pingServer(node global.NodeInfo) {
 
         if rst == false {
             GossipNodesMutex.Lock()
-            if global.protocol == global.SWIM_PROROCOL {
+            if global.Protocol == global.SWIM_PROROCOL {
                 
                 delete(global.Nodes, node.ID)
 
@@ -576,7 +576,7 @@ func pingServer(node global.NodeInfo) {
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
                 
                 
-            } else if global.protocol == global.SWIM_SUSPIECT_PROROCOL {
+            } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
                 
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
@@ -629,12 +629,12 @@ func pingServer(node global.NodeInfo) {
         if rst == false {
             // delete the node from the Nodes list
             GossipNodesMutex.Lock()
-            if global.protocol == global.SWIM_PROROCOL {
+            if global.Protocol == global.SWIM_PROROCOL {
                 delete(global.Nodes, node.ID)
                 // add the node to the GossipNodes list
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
                 
-            } else if global.protocol == global.SWIM_SUSPIECT_PROROCOL {
+            } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
             }
@@ -662,7 +662,7 @@ func handleGossip(message pb.SWIMMessage) {
     for _, Membership := range message.Membership {
         if Membership.MemberStatus == utils.MapState(global.Down) {
             if Membership.MemberID == Id {
-                DialIntroducer()
+                dialIntroducer()
                 return
             }
             // delete the node from the Nodes list
@@ -685,7 +685,7 @@ func handleGossip(message pb.SWIMMessage) {
             // add the node to the GossipNodes list
             if Membership.MemberID == Id {         
                 global.Incarnation = int(Membership.MemberIncarnation) + 1
-                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: gloabl.Incarnation, Time: time.Now()}
+                global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: global.Incarnation, Time: time.Now()}
             } else {
                 if global.GossipNodes[Membership.MemberID].Incarnation <= int(Membership.MemberIncarnation) {
                     global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Suspected, Incarnation: int(Membership.MemberIncarnation), Time: time.Now()}
@@ -707,8 +707,8 @@ func checkSuspected() {
     for {
         time.Sleep(time.Duration(SUSPECT_TIMEOUT) * time.Second)
         GossipNodesMutex.Lock()
-        for id, time := range global.SuspectedNodes {
-            if time.Before(time.Now().Add(-time.Duration(SUSPECT_TIMEOUT) * time.Second)) {
+        for id, suspectTime := range global.SuspectedNodes {
+            if suspectTime.Before(time.Now().Add(-time.Duration(SUSPECT_TIMEOUT) * time.Second)) {
                 delete(global.SuspectedNodes, id)
                 global.GossipNodes[id] = global.GossipNode{ID: id, Address: global.Nodes[id].Address, State: global.Down, Incarnation: 0, Time: time.Now()}
             }
