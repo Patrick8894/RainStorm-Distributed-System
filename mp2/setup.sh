@@ -55,10 +55,10 @@ for i in "${!hosts[@]}"; do
     go build node.go
     go build control.go
     if [ $i -eq 0 ]; then
-        nohup ./node --introducer > ../mp1/data/${log_files[$i]} 2>&1 &
+        nohup ./node --introducer > ../../mp1/data/${log_files[$i]} 2>&1 &
     
     else
-        nohup ./node > ../mp1/data/${log_files[$i]} 2>&1 &
+        nohup ./node > ../../mp1/data/${log_files[$i]} 2>&1 &
     fi
   "
   echo "Done with $host"
