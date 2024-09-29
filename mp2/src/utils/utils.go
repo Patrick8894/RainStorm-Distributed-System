@@ -29,7 +29,7 @@ func MapState(state global.State) pb.MembershipInfo_State {
 
 // Corrected function to get the gossip list
 func GetGossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInfo {
-    fmt.Println("GossipNodes: ", GossipNodes)
+    // fmt.Println("GossipNodes: ", GossipNodes)
     gossipNodelist := []*pb.MembershipInfo{}
     for _, GossipNode := range GossipNodes {
 

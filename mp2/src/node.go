@@ -354,14 +354,14 @@ func startServer() {
                 fmt.Println("Failed to response to JOIN message:", err)
                 return
             }
-            fmt.Println("Introducer response message success sent to new node")
-            fmt.Println("gossipNodes before join: ", global.GossipNodes)
+            // fmt.Println("Introducer response message success sent to new node")
+            // fmt.Println("gossipNodes before join: ", global.GossipNodes)
             GossipNodesMutex.Lock()
             global.GossipNodes[message.Membership[0].MemberID] = global.GossipNode{ID: message.Membership[0].MemberID, Address: message.Sender, State: global.Join, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
-            fmt.Println("gossipNodes after join: ", global.GossipNodes)
+            // fmt.Println("gossipNodes after join: ", global.GossipNodes)
 
-            fmt.Println("Introducer response message success sent to new node")
+            // fmt.Println("Introducer response message success sent to new node")
 
 		} else if message.Type == pb.SWIMMessage_PONG {
 			// This is the ack from relay message, send ack back to the sender.
