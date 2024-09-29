@@ -128,6 +128,7 @@ func startHandlecommand() {
                 os.Exit(1)
             }
             NodesMutex.Unlock()
+            fmt.Println("Received ls command, sending list of nodes...")
             _, err = conn.WriteToUDP(jsonData, addr)
             if err != nil {
                 fmt.Println("Failed to response to command message:", err)
@@ -135,9 +136,11 @@ func startHandlecommand() {
             }
         } else if command == "on" {
             // turn on the suspect protocol
+            fmt.Println("Received on command, turning on the suspect protocol...")
             global.Protocol = global.SWIM_SUSPIECT_PROROCOL
         } else if command == "off" {
             // turn off the suspect protocol, maintain the SWIM PINGACK protocl
+            fmt.Println("Received off command, shutting down the suspect protocol...")
             global.Protocol = global.SWIM_PROROCOL
         } else if command == "kill"{
             // kill the node.go
