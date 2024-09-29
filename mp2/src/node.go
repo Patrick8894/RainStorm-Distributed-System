@@ -29,8 +29,8 @@ import (
 
 var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
-var PROTOCOL_PERIOD = 0.5
-var TIMEOUT_PERIOD = 0.4
+var PROTOCOL_PERIOD = 1.0
+var TIMEOUT_PERIOD = 0.8
 var SUSPECT_TIMEOUT = 30
 
 var Introducer = false
