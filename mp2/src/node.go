@@ -214,6 +214,7 @@ func dialIntroducer() {
     GossipNodesMutex.Lock()
     global.Nodes = response
     GossipNodesMutex.Lock()
+    fmt.Println("Joined the cluster")
 }
 
 func startServer() {
