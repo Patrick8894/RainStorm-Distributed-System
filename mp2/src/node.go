@@ -92,7 +92,7 @@ func main(){
 func startHandlecommand() {
     hostname, err := os.Hostname()
     var COMMAND_ADDRESS = hostname + ":" + global.COMMAND_PORT
-    addr, err := net.ResolveUDPAddr("udp", ":" + COMMAND_ADDRESS)
+    addr, err := net.ResolveUDPAddr("udp", COMMAND_ADDRESS)
     if err != nil {
         fmt.Println("Error resolving in Command server address:", err)
         return
