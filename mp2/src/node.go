@@ -605,7 +605,7 @@ func pingServer(node global.NodeInfo) {
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
                 fmt.Println("Delete SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
-                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: int(global.GossipNodes[node.ID].Incarnation), Time: time.Now()}
             }
             GossipNodesMutex.Unlock()
         }
@@ -664,7 +664,7 @@ func pingServer(node global.NodeInfo) {
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
                 fmt.Println("Delete SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
-                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
+                global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: int(global.GossipNodes[node.ID].Incarnation), Time: time.Now()}
             }
             GossipNodesMutex.Unlock()
         }
@@ -719,13 +719,13 @@ func handleGossip(message pb.SWIMMessage) {
                 global.Incarnation = int(Membership.MemberIncarnation) + 1
                 global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: global.Incarnation, Time: time.Now()}
             } else {
-                if global.GossipNodes[Membership.MemberID].Incarnation <= int(Membership.MemberIncarnation) {
+                if global.GossipNodes[Membership.MemberID].Incarnation <= int(Membership.MemberIncarnation) && global.GossipNodes[Membership.MemberID].State != global.Down {
                     global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Suspected, Incarnation: int(Membership.MemberIncarnation), Time: time.Now()}
                 }
             }
         } else if Membership.MemberStatus == utils.MapState(global.Alive) {
             // add the node to the GossipNodes list
-            if global.GossipNodes[Membership.MemberID].Incarnation < int(Membership.MemberIncarnation) {
+            if global.GossipNodes[Membership.MemberID].Incarnation < int(Membership.MemberIncarnation) && global.GossipNodes[Membership.MemberID].State != global.Down {
                 delete(global.SuspectedNodes, Membership.MemberID)
                 global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive, Incarnation: int(Membership.MemberIncarnation), Time: time.Now()}
             }
