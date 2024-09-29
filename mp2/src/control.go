@@ -60,9 +60,7 @@ func main (){
 	
 		fmt.Println("Received message from select node ls:")
 		for _, node := range response {
-			for key, value := range node {
-				fmt.Println(key, value)
-			}
+			fmt.Println(node)
 		}
 
 	} else if *command == "lsg" {
@@ -104,6 +102,7 @@ func main (){
 	
 	} else if *command == "on" {
 		// send the on command to all cluster nodes
+
 		for _, node := range global.Cluster {
 			conn, err := net.Dial("udp", node)
 
