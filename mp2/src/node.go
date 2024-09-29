@@ -683,12 +683,14 @@ func handleGossip(message pb.SWIMMessage) {
             }
         } else if Membership.MemberStatus == utils.MapState(global.Join) {
             // add the node to the Nodes list
+
             _, exists := global.Nodes[Membership.MemberID];
+            fmt.Println("Join: ", Membership.MemberID)
+            fmt.Println("Exists: ", exists)
             if !exists {
                 global.Nodes[Membership.MemberID] = global.NodeInfo{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Alive}
                 global.GossipNodes[Membership.MemberID] = global.GossipNode{ID: Membership.MemberID, Address: Membership.MemberAddress, State: global.Join, Incarnation: 0, Time: time.Now()}
                 
-                fmt.Println("New node joined the cluster:", Membership.MemberID)
             }
         } else if Membership.MemberStatus == utils.MapState(global.Suspected) {
             // add the node to the GossipNodes list
