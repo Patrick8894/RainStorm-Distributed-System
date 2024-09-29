@@ -672,6 +672,7 @@ func pingServer(node global.NodeInfo) {
 
 func handleGossip(message pb.SWIMMessage) {
     GossipNodesMutex.Lock()
+    fmt.Println("Handle Gossip message: ", message.Membership)
     for _, Membership := range message.Membership {
         if Membership.MemberStatus == utils.MapState(global.Down) {
             if Membership.MemberID == Id {
