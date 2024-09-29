@@ -129,11 +129,6 @@ func startHandlecommand() {
             // send the list of nodes to the sender
             GossipNodesMutex.Lock()
             jsonData, err := json.Marshal(global.Nodes)
-            // combinedData := map[string]interface{}{
-            //     "Nodes":      global.Nodes,
-            //     "GossipNodes": global.GossipNodes,
-            // }
-            // jsonData, err := json.Marshal(combinedData)
             if err != nil {
                 fmt.Println("Error serializing data:", err)
                 os.Exit(1)
@@ -141,6 +136,21 @@ func startHandlecommand() {
             GossipNodesMutex.Unlock()
             fmt.Println("Received ls command, sending list of nodes...")
             _, err = conn.WriteToUDP(jsonData, addr)
+
+
+            // send the list of GossipNodes to the sender
+            GossipNodesMutex.Lock()
+            jsonData2, err := json.Marshal(global.GossipNodes)
+            if err != nil {
+                fmt.Println("Error serializing data:", err)
+                os.Exit(1)
+            }
+            GossipNodesMutex.Unlock()
+            fmt.Println("Received ls command, sending list of gossipnodes...")
+            _, err = conn.WriteToUDP(jsonData2, addr)
+
+
+            
             if err != nil {
                 fmt.Println("Failed to response to command message:", err)
                 return

@@ -64,6 +64,27 @@ func main (){
 				fmt.Println(key, value)
 			}
 		}
+
+		
+		n, err := conn.Read(buffer)
+		if err != nil {
+			fmt.Println("No response from select_node:", err)
+			return
+		}
+	
+		var response2 map[string]global.GossipNode
+		err = json.Unmarshal(buffer[:n], &response2)
+		if err != nil {
+			fmt.Println("Failed to unmarshal message:", err)
+			return
+		}
+	
+		fmt.Println("Received message from select node:")
+		for _, node := range response2 {
+			for key, value := range node {
+				fmt.Println(key, value)
+			}
+		}
 	} else if *command == "on" {
 		nodeIndex, err := strconv.Atoi(*select_node)
 		conn, err := net.Dial("udp", global.Cluster[nodeIndex-1])
