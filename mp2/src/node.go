@@ -128,11 +128,11 @@ func startHandlecommand() {
         if command == "ls" {
             // send the list of nodes to the sender
             GossipNodesMutex.Lock()
-            // jsonData, err := json.Marshal(global.Nodes)
-            combinedData := map[string]interface{}{
-                "Nodes":      global.Nodes,
-                "GossipNodes": global.GossipNodes,
-            }
+            jsonData, err := json.Marshal(global.Nodes)
+            // combinedData := map[string]interface{}{
+            //     "Nodes":      global.Nodes,
+            //     "GossipNodes": global.GossipNodes,
+            // }
             jsonData, err := json.Marshal(combinedData)
             if err != nil {
                 fmt.Println("Error serializing data:", err)
