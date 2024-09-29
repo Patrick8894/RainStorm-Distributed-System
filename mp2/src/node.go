@@ -133,7 +133,7 @@ func startHandlecommand() {
             //     "Nodes":      global.Nodes,
             //     "GossipNodes": global.GossipNodes,
             // }
-            jsonData, err := json.Marshal(combinedData)
+            // jsonData, err := json.Marshal(combinedData)
             if err != nil {
                 fmt.Println("Error serializing data:", err)
                 os.Exit(1)
