@@ -387,25 +387,20 @@ func pingIndirect(node global.NodeInfo) bool {
                 resultChan <- false
                 return
             }
-            
-            // Resolve the address of the random node
-            randomNodeAddr, err := net.ResolveUDPAddr("udp", rNode.Address)
-            if err != nil {
-                fmt.Println("Failed to resolve random node address:", err)
-                resultChan <- false
-                return
-            }
 
-            conn, err := net.DialTimeout("udp", randomNodeAddr, 3 * time.Duration(TIMEOUT_PERIOD) * time.Second)
+            conn, err := net.DialTimeout("udp", rNode.Address, 3 * time.Duration(TIMEOUT_PERIOD) * time.Second)
             if err != nil {
                 fmt.Println("Failed to dial random node:", err)
                 resultChan <- false
                 return
             }
             defer conn.Close()
+
+            // Set a write deadline for the connection
+            conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
             
             // Send the INDIRECT_PING message to the random node
-            _, err = conn.WriteTo(data, randomNodeAddr)
+            _, err = conn.Write(data)
             if err != nil {
                 fmt.Println("Failed to send INDIRECT_PING message:", err)
                 resultChan <- false
@@ -419,7 +414,7 @@ func pingIndirect(node global.NodeInfo) bool {
             conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
             // Read from the connection
-            n, _, err := conn.ReadFrom(buffer)
+            n, err := conn.Read(buffer)
             if err != nil {
                 fmt.Println("Failed to read from connection:", err)
                 resultChan <- false
