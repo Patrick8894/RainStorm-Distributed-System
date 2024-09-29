@@ -449,6 +449,9 @@ func startClient() {
                     nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
                 })
             }
+            if len(nodesArray) == 0 {
+                continue
+            }
             node := nodesArray[curNode]
             pingServer(node)
             curNode++
