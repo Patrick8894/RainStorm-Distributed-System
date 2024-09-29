@@ -741,6 +741,7 @@ func checkSuspected() {
         GossipNodesMutex.Lock()
         for id, suspectTime := range global.SuspectedNodes {
             if suspectTime.Before(time.Now().Add(-time.Duration(SUSPECT_TIMEOUT) * time.Second)) {
+                // If the suspected node stay too long, it need to be deleted
                 delete(global.SuspectedNodes, id)
                 delete(global.Nodes, id)
                 global.GossipNodes[id] = global.GossipNode{ID: id, Address: global.Nodes[id].Address, State: global.Down, Incarnation: 0, Time: time.Now()}
