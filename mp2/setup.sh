@@ -3,16 +3,29 @@
 # List of remote hosts
 
 hosts=(
-  "bohaowu2@fa24-cs425-6605.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6601.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6602.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6603.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6604.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6606.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6607.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6608.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6609.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6610.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6605.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6601.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6602.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6603.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6604.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6606.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6607.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6608.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6609.cs.illinois.edu"
+    "bohaowu2@fa24-cs425-6610.cs.illinois.edu"
+)
+
+log_files=(
+    "machine.5.log"
+    "machine.1.log"
+    "machine.2.log"
+    "machine.3.log"
+    "machine.4.log"
+    "machine.6.log"
+    "machine.7.log"
+    "machine.8.log"
+    "machine.9.log"
+    "machine.10.log"
 )
 
 # Directory where the repo is located on remote machines
@@ -42,9 +55,10 @@ for i in "${!hosts[@]}"; do
     go build node.go
     go build control.go
     if [ $i -eq 0 ]; then
-        nohup ./node --introducer > ../data/mp2${i}.log 2>&1 &
+        nohup ./node --introducer > ../mp1/data/${log_files[$i]} 2>&1 &
+    
     else
-        nohup ./node > ../mp1/data/mp2${i}.log 2>&1 &
+        nohup ./node > ../mp1/data/${log_files[$i]} 2>&1 &
     fi
   "
   echo "Done with $host"
