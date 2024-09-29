@@ -31,8 +31,8 @@ var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
 // listen the command from other machine
 var COMMAND_PORT = "8082"
-var PROTOCOL_PERIOD = 2.0
-var TIMEOUT_PERIOD = 1.5
+var PROTOCOL_PERIOD = 0.5
+var TIMEOUT_PERIOD = 0.2
 var SUSPECT_TIMEOUT = 5.0
 
 var Introducer = false
@@ -493,7 +493,7 @@ func pingIndirect(node global.NodeInfo) bool {
             }
 
             // Set a write deadline for the connection
-            conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
+            // conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
             
             // Send the INDIRECT_PING message to the random node
             _, err = conn.Write(data)
@@ -607,7 +607,7 @@ func pingServer(node global.NodeInfo) {
     }
 
     // Set a read deadline for the response
-    conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
+    // conn.SetWriteDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
 
     // Send the message using WriteToUDP
     _, err = conn.Write(data)
