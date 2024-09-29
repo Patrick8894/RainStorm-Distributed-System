@@ -35,7 +35,7 @@ func main (){
 			return
 		}
 		defer conn.Close()
-		fmt.println("Send comomand to %v ls", global.Cluster[nodeIndex-1])
+		fmt.Println("Send comomand to %v ls", global.Cluster[nodeIndex-1])
 		data := []byte(*command)
 		_, err = conn.Write(data)
 		if err != nil {
