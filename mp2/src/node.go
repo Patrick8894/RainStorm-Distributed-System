@@ -710,6 +710,7 @@ func handleGossip(message pb.SWIMMessage) {
         if Membership.MemberStatus == utils.MapState(global.Down) {
             if Membership.MemberID == Id {
                 if !Introducer {
+                    GossipNodesMutex.Lock()
                     dialIntroducer()
                 }
                 return
