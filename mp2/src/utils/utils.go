@@ -28,6 +28,12 @@ func MapState(state global.State) pb.MembershipInfo_State {
 func GetGossiplist(GossipNodes map[string]global.GossipNode) []*pb.MembershipInfo {
     gossipNodelist := []*pb.MembershipInfo{}
     for _, GossipNode := range GossipNodes {
+
+		// check if the gossipnode is timeout or not
+		if GossipNode.Time < time.Now().Add(DEAD_TIMEOUT * time.Second) {
+			continue
+		}
+
         gossipNodelist = append(gossipNodelist, &pb.MembershipInfo{
             MemberID:          GossipNode.ID,
             MemberAddress:     GossipNode.Address,
@@ -51,14 +57,14 @@ func GetNodelist(Nodes map[string]global.NodeInfo) []*pb.MembershipInfo {
     return nodelist
 }
 
-// Corrected function to send a message
-func SendMessage(conn net.Conn, addr net.UDPAddr, message *pb.SWIMMessage) {
+// Corrected function to send a message for receiver
+func SendMessage(conn *net.UDPConn, addr *net.UDPAddr, message *pb.SWIMMessage) {
     data, err := proto.Marshal(message)
     if err != nil {
         fmt.Printf("Failed to marshal message: %v\n", err)
         return
     }
-    _, err = conn.Write(data) // Use Write method instead of WriteTo
+    _, err = conn.WriteTo(data, addr) // Use Write method instead of WriteTo
     if err != nil {
         fmt.Printf("Failed to send message: %v\n", err)
     }

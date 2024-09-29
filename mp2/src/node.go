@@ -108,7 +108,15 @@ func dialIntroducer() {
     }
     
     fmt.Println("Sending JOIN message to Introducer from", SelfAddress)
-    utils.SendMessage(conn, INTRODUCER_ADDRESS, message)
+    data, err := proto.Marshal(message)
+    if err != nil {
+        fmt.Printf("Failed to marshal message: %v\n", err)
+        return
+    }
+    _, err = conn.Write(data) // Use Write method instead of WriteTo
+    if err != nil {
+        fmt.Printf("Failed to send message: %v\n", err)
+    }
     
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
@@ -169,7 +177,9 @@ func startServer() {
             // Response to ping
             // Create a SWIMMessage to send
 
+            GossipNodesMutex.Lock()
             gossiplist := utils.GetGossiplist(global.GossipNodes)
+            GossipNodesMutex.Unlock()
 
             response := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
@@ -178,7 +188,16 @@ func startServer() {
                 Membership : gossiplist,
             }
             
-            utils.SendMessage(conn, addr, response)
+            data, err := proto.Marshal(response)
+            if err != nil {
+                fmt.Printf("Failed to marshal message: %v\n", err)
+                return
+            }
+            _, err = conn.WriteTo(data, addr) // Use Write method instead of WriteTo
+            if err != nil {
+                fmt.Printf("Failed to send message: %v\n", err)
+            }
+
         	fmt.Println("Message success ping to server")
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
@@ -189,7 +208,9 @@ func startServer() {
                 return
             }
             
+            GossipNodesMutex.Lock()
             gossiplist := utils.GetGossiplist(global.GossipNodes)
+            GossipNodesMutex.Unlock()
 
             // Create a PING message with the same sender and target
             pingMessage := &pb.SWIMMessage{
@@ -199,7 +220,15 @@ func startServer() {
                 Membership: gossiplist,
             }
             
-            utils.SendMessage(conn, targetAddr, pingMessage)
+            data, err := proto.Marshal(pingMessage)
+            if err != nil {
+                fmt.Printf("Failed to marshal message: %v\n", err)
+                return
+            }
+            _, err = conn.WriteTo(data, targetAddr) // Use Write method instead of WriteTo
+            if err != nil {
+                fmt.Printf("Failed to send message: %v\n", err)
+            }
 
             fmt.Println("PING message success sent to target node")
 
@@ -232,8 +261,10 @@ func startServer() {
                 fmt.Println("Failed to resolve target address:", err)
                 return
             }
-            
+            GossipNodesMutex.Lock()
             gossiplist := utils.GetGossiplist(global.GossipNodes)
+            GossipNodesMutex.Unlock()
+
             // Create a SWIMMessage to send
             pongMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_PONG,
@@ -242,7 +273,15 @@ func startServer() {
                 Membership: gossiplist,
             }
             
-            utils.SendMessage(conn, targetAddr, pongMessage)
+            data, err := proto.Marshal(pongMessage)
+            if err != nil {
+                fmt.Printf("Failed to marshal message: %v\n", err)
+                return
+            }
+            _, err = conn.WriteTo(data, targetAddr) // Use Write method instead of WriteTo
+            if err != nil {
+                fmt.Printf("Failed to send message: %v\n", err)
+            }
 
             fmt.Println("Relay Message sent to server")
 
@@ -331,7 +370,9 @@ func pingIndirect(node global.NodeInfo) bool {
             defer wg.Done()
             
             // Construct GossipMessage
+            GossipNodesMutex.Lock()
             gossiplist := utils.GetGossiplist(global.GossipNodes)
+            GossipNodesMutex.Unlock()
 
             indirectPingMessage := &pb.SWIMMessage{
                 Type:   pb.SWIMMessage_INDIRECT_PING,
@@ -445,7 +486,9 @@ func pingServer(node global.NodeInfo) {
     }
 
     // TODO: Send a PING message to the server
+    GossipNodesMutex.Lock()
     gossiping := utils.GetGossiplist(global.GossipNodes)
+    GossipNodesMutex.Unlock()
 
     message := &pb.SWIMMessage{
         Type:   pb.SWIMMessage_INDIRECT_PING,
@@ -453,7 +496,16 @@ func pingServer(node global.NodeInfo) {
         Target: node.Address,
         Membership: gossiping,
     }
-    utils.SendMessage(conn, node.Address, message)
+
+    data, err := proto.Marshal(message)
+    if err != nil {
+        fmt.Printf("Failed to marshal message: %v\n", err)
+        return
+    }
+    _, err = conn.Write(data) // Use Write method instead of WriteTo
+    if err != nil {
+        fmt.Printf("Failed to send message: %v\n", err)
+    }
 
     // Set a read deadline for the response
     conn.SetReadDeadline(time.Now().Add(time.Duration(TIMEOUT_PERIOD) * time.Second))
