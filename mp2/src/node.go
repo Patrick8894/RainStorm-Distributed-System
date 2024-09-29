@@ -594,6 +594,9 @@ func pingIndirect(node global.NodeInfo) bool {
 }
 
 func pingServer(node global.NodeInfo) {  
+    if node.ID == Id {
+        return
+    }
     udpAddr, err := net.ResolveUDPAddr("udp", node.Address)
     if err != nil {
         fmt.Printf("Failed to resolve address %s: %v\n", node.Address, err)
