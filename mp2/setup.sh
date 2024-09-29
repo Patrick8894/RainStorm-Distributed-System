@@ -44,7 +44,7 @@ for i in "${!hosts[@]}"; do
     if [ $i -eq 0 ]; then
         nohup ./node --introducer > ../data/mp2${i}.log 2>&1 &
     else
-        nohup ./node > ../data/mp2${i}.log 2>&1 &
+        nohup ./node > ../mp1/data/mp2${i}.log 2>&1 &
     fi
   "
   echo "Done with $host"
