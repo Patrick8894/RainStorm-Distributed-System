@@ -253,7 +253,7 @@ func startServer() {
         handleGossip(message)
 
         //  received message
-        fmt.Printf("Received message: %+v\n", message)
+        fmt.Printf("Server Received message: %+v\n", message)
 
         if message.Type == pb.SWIMMessage_DIRECT_PING {
             // Response to ping
@@ -281,10 +281,10 @@ func startServer() {
             fmt.Println("Sending PONG message to", addr)
             _, err = conn.WriteToUDP(data, addr) // Use Write method instead of WriteTo
             if err != nil {
-                fmt.Printf("Failed to send message: %v\n", err)
+                fmt.Printf("Failed to send message in response PONG direct ping: %v\n", err)
             }
 
-        	fmt.Println("Message success ping to server")
+        	fmt.Println("Message success direct ping to server")
 
         } else if message.Type == pb.SWIMMessage_INDIRECT_PING {
             // Relay the message to the target node
@@ -314,18 +314,19 @@ func startServer() {
             }
             _, err = conn.WriteToUDP(data, targetAddr) // Use Write method instead of WriteTo
             if err != nil {
-                fmt.Printf("Failed to send message: %v\n", err)
+                fmt.Printf("Failed to send message in indirect ping: %v\n", err)
             }
 
-            fmt.Println("PING message success sent to target node")
+            fmt.Println("Indirect PING message success sent to target node")
 
         } else if message.Type == pb.SWIMMessage_JOIN {
+            // Introducer response message
 			if !Introducer {
                 continue
             }
 			GossipNodesMutex.Lock()
             // Add the new node to the list of nodes
-            global.Nodes[message.Sender] = global.NodeInfo{ID: message.Membership[0].MemberID , Address: message.Sender, State: global.Alive}
+            global.Nodes[message.Membership[0].MemberID] = global.NodeInfo{ID: message.Membership[0].MemberID , Address: message.Sender, State: global.Alive}
             
             jsonData, err := json.Marshal(global.Nodes)
             if err != nil {
@@ -341,6 +342,9 @@ func startServer() {
             GossipNodesMutex.Lock()
             global.GossipNodes[message.Membership[0].MemberID] = global.GossipNode{ID: message.Membership[0].MemberID, Address: message.Sender, State: global.Join, Incarnation: 0, Time: time.Now()}
             GossipNodesMutex.Unlock()
+
+            fmt.Println("Introducer response message success sent to new node")
+
 		} else if message.Type == pb.SWIMMessage_PONG {
 			// This is the ack from relay message, send ack back to the sender.
             targetAddr, err := net.ResolveUDPAddr("udp", message.Target)
@@ -571,7 +575,7 @@ func pingServer(node global.NodeInfo) {
         if rst == false {
             GossipNodesMutex.Lock()
             if global.Protocol == global.SWIM_PROROCOL {
-                fmt.Println("SWIM_PROROCOL; nodeId: ", node.ID)
+                fmt.Println("Delete SWIM_PROROCOL; nodeId: ", node.ID)
                 delete(global.Nodes, node.ID)
 
                 // add the node to the GossipNodes list
@@ -579,7 +583,7 @@ func pingServer(node global.NodeInfo) {
                 
                 
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
-                fmt.Println("SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
+                fmt.Println("Delete SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
             }
@@ -632,13 +636,13 @@ func pingServer(node global.NodeInfo) {
             // delete the node from the Nodes list
             GossipNodesMutex.Lock()
             if global.Protocol == global.SWIM_PROROCOL {
-                fmt.Println("SWIM_PROROCOL; nodeId: ", node.ID)
+                fmt.Println("Delete SWIM_PROROCOL; nodeId: ", node.ID)
                 delete(global.Nodes, node.ID)
                 // add the node to the GossipNodes list
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Down, Incarnation: 0, Time: time.Now()}
                 
             } else if global.Protocol == global.SWIM_SUSPIECT_PROROCOL {
-                fmt.Println("SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
+                fmt.Println("Delete SWIM_SUSPIECT_PROROCOL; nodeId: ", node.ID)
                 global.SuspectedNodes[node.ID] = time.Now()
                 global.GossipNodes[node.ID] = global.GossipNode{ID: node.ID, Address: node.Address, State: global.Suspected, Incarnation: 0, Time: time.Now()}
             }
