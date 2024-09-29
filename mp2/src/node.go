@@ -150,7 +150,7 @@ func startHandlecommand() {
                 os.Exit(1)
             }
             GossipNodesMutex.Unlock()
-            fmt.Println("Received ls command, sending list of nodes...")
+            fmt.Println("Received ls command, sending list of gossipnodes...")
             _, err = conn.WriteToUDP(jsonData, addr)
             
             if err != nil {

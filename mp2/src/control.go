@@ -103,26 +103,39 @@ func main (){
 		}
 	
 	} else if *command == "on" {
-		nodeIndex, err := strconv.Atoi(*select_node)
-		conn, err := net.Dial("udp", global.Cluster[nodeIndex-1])
-		fmt.Println("Send comomand to %v ON", global.Cluster[nodeIndex-1])
-		defer conn.Close()
+		// send the on command to all cluster nodes
+		for _, node := range global.Cluster {
+			conn, err := net.Dial("udp", node)
 
-		data := []byte(*command)
-		_, err = conn.Write(data)
-		if err != nil {
-			fmt.Printf("Failed to send message: %v\n", err)
+			if err != nil {
+				fmt.Println("Error dialing connection:", err)
+				continue
+			}
+			fmt.Println("Send comomand to %v ON", node)
+			defer conn.Close()
+
+			data := []byte(*command)
+			_, err = conn.Write(data)
+			if err != nil {
+				fmt.Printf("Failed to send message: %v\n", err)
+			}
 		}
 	} else if *command == "off" {
-		nodeIndex, err := strconv.Atoi(*select_node)
-		conn, err := net.Dial("udp", global.Cluster[nodeIndex-1])
-		fmt.Println("Send comomand to %v OFF", global.Cluster[nodeIndex-1])
-		defer conn.Close()
+		// nodeIndex, err := strconv.Atoi(*select_node)
 
-		data := []byte(*command)
-		_, err = conn.Write(data)
-		if err != nil {
-			fmt.Printf("Failed to send message: %v\n", err)
+		// send the off command to all cluster nodes
+
+		for _, node := range global.Cluster {
+
+			conn, err := net.Dial("udp", node)
+			fmt.Println("Send comomand to %v OFF", node)
+			defer conn.Close()
+
+			data := []byte(*command)
+			_, err = conn.Write(data)
+			if err != nil {
+				fmt.Printf("Failed to send message: %v\n", err)
+			}
 		}
 	} else if *command == "kill" {
 		nodeIndex, err := strconv.Atoi(*select_node)
