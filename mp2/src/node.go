@@ -480,7 +480,7 @@ func pingServer(node global.NodeInfo) {
     }
 
     conn, err := net.DialUDP("udp", nil, udpAddr)
-    if err != nil {
+    if err == nil {
         fmt.Printf("Failed to ping %s: %v\n", node.Address, err)
         // TODO: Handle the case where the direct node is down
 
