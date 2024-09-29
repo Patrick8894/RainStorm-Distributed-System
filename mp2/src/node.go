@@ -305,7 +305,10 @@ func startClient() {
 		nodesArray[i], nodesArray[j] = nodesArray[j], nodesArray[i]
 	})
 
-	ticker := time.NewTicker(time.Duration(PROTOCOL_PERIOD) * time.Second) // Ping every PROTOCOL_PERIOD seconds
+    if PROTOCOL_PERIOD <= 0 {
+        fmt.Println("Invalid PROTOCOL_PERIOD value")
+    }
+	ticker := time.NewTicker(time.Duration(PROTOCOL_PERIOD) * float64(time.Second)) // Ping every PROTOCOL_PERIOD seconds
     defer ticker.Stop()
 
 	for {
