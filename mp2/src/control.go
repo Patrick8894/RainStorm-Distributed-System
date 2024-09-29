@@ -58,33 +58,52 @@ func main (){
 			return
 		}
 	
-		fmt.Println("Received message from select node:")
+		fmt.Println("Received message from select node ls:")
 		for _, node := range response {
 			for key, value := range node {
 				fmt.Println(key, value)
 			}
 		}
 
-		
+	} else if *command == "lsg" {
+		// send the list command to select_node IP address with UDP
+		nodeIndex, err :=  strconv.Atoi(*select_node)
+		conn, err := net.Dial("udp", global.Cluster[nodeIndex-1])
+		if err != nil {
+			fmt.Println("Error dialing introducer:", err)
+			return
+		}
+		defer conn.Close()
+		fmt.Println("Send comomand to %v lsg", global.Cluster[nodeIndex-1])
+		data := []byte(*command)
+		_, err = conn.Write(data)
+		if err != nil {
+			fmt.Printf("Failed to send message: %v\n", err)
+		}
+		// wait for the response from select_node
+		// print the response from select_node
+		// Use Json to unmarshal when receiving the whole NodeList
+		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)
 		if err != nil {
 			fmt.Println("No response from select_node:", err)
 			return
 		}
 	
-		var response2 map[string]global.GossipNode
-		err = json.Unmarshal(buffer[:n], &response2)
+		var response map[string]global.GossipNode
+		err = json.Unmarshal(buffer[:n], &response)
 		if err != nil {
 			fmt.Println("Failed to unmarshal message:", err)
 			return
 		}
 	
-		fmt.Println("Received message from select node:")
-		for _, node := range response2 {
+		fmt.Println("Received message from select node lsg:")
+		for _, node := range response {
 			for key, value := range node {
 				fmt.Println(key, value)
 			}
 		}
+	
 	} else if *command == "on" {
 		nodeIndex, err := strconv.Atoi(*select_node)
 		conn, err := net.Dial("udp", global.Cluster[nodeIndex-1])
