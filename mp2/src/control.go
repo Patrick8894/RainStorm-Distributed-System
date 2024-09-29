@@ -35,7 +35,7 @@ func main (){
 			return
 		}
 		defer conn.Close()
-
+		fmt.println("Send comomand to %v ls", global.Cluster[nodeIndex-1])
 		data := []byte(*command)
 		_, err = conn.Write(data)
 		if err != nil {
@@ -47,7 +47,7 @@ func main (){
 		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("No response from introducer:", err)
+			fmt.Println("No response from select_node:", err)
 			return
 		}
 	
