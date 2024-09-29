@@ -60,7 +60,9 @@ func main (){
 	
 		fmt.Println("Received message from select node:")
 		for _, node := range response {
-			fmt.Println(node)
+			for key, value := range node {
+				fmt.Println(key, value)
+			}
 		}
 	} else if *command == "on" {
 		nodeIndex, err := strconv.Atoi(*select_node)
