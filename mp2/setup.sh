@@ -40,6 +40,7 @@ for i in "${!hosts[@]}"; do
     
     cd $repo_dir
     go build node.go
+    go build control.go
     if [ $i -eq 0 ]; then
         nohup ./node --introducer > ../data/mp2${i}.log 2>&1 &
     else

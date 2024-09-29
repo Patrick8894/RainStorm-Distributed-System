@@ -170,6 +170,10 @@ func startHandlecommand() {
             // kill the node.go
             fmt.Println("Received kill command, shutting down...")
             os.Exit(0)
+        } else {
+            // setting DropRate
+            global.DropRate, err = strconv.ParseFloat(command, 64)
+            fmt.Println("Received drop command, setting DropRate to", global.DropRate)
         }
     }
 }

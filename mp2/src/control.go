@@ -100,6 +100,22 @@ func main (){
 			fmt.Println(node)
 		}
 	
+	} else if *command == "drop" {
+		// send drop number to all node
+		for _, node := range global.Cluster {
+			conn, err := net.Dial("udp", node)
+			if err != nil {
+				fmt.Println("Error dialing sending command drop:", err, node)
+				continue
+			}
+			defer conn.Close()
+			fmt.Println("Send comomand to %v drop", node)
+			data := []byte(*select_node)
+			_, err = conn.Write(data)
+			if err != nil {
+				fmt.Printf("Failed to send message: %v\n", err)
+			}
+		}
 	} else if *command == "on" {
 		// send the on command to all cluster nodes
 
