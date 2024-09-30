@@ -34,6 +34,8 @@ var COMMAND_PORT = "8082"
 var PROTOCOL_PERIOD = 2.0
 var TIMEOUT_PERIOD = 1.0
 var SUSPECT_TIMEOUT = 5.0
+var Total_rounds = 0
+var False_Positive_rounds = 0
 
 var Introducer = false
 var GossipNodesMutex sync.Mutex
@@ -435,6 +437,7 @@ func startClient() {
 	ticker := time.NewTicker(time.Duration(PROTOCOL_PERIOD * float64(time.Second) )) // Ping every PROTOCOL_PERIOD seconds
     defer ticker.Stop()
 
+
 	for {
 		select {
         case <-ticker.C:
@@ -457,6 +460,15 @@ func startClient() {
             node := nodesArray[curNode]
             pingServer(node)
             curNode++
+            Total_rounds++
+
+            if len(global.Nodes) < 10 {
+                False_Positive_rounds++;
+            }
+
+            fmt.Println("Total_rounds: ", Total_rounds)
+            fmt.Println("False_Positive_rounds: ", False_Positive_rounds)
+            fmt.Println("False Positive Rate: ", float64(False_Positive_rounds) / float64(Total_rounds))
         }
 	}
 }
