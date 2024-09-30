@@ -31,7 +31,7 @@ var INTRODUCER_ADDRESS = "fa24-cs425-6605.cs.illinois.edu:8081"
 var PORT = "8081"
 // listen the command from other machine
 var COMMAND_PORT = "8082"
-var PROTOCOL_PERIOD = 2.0
+var PROTOCOL_PERIOD = 1.0
 var TIMEOUT_PERIOD = 1.0
 var SUSPECT_TIMEOUT = 3.5
 var Total_rounds = 0
