@@ -157,6 +157,30 @@ func startHandlecommand() {
                 return
             }
 
+        } else if command == "lss" {
+            // send dict suspicted nodes
+            // send dict's key
+            
+            suspectedNodes := make([]string, 0, len(global.SuspectedNodes))
+            for nodeID := range global.SuspectedNodes {
+                suspectedNodes = append(suspectedNodes, nodeID)
+            }
+
+            jsonData, err := json.Marshal(suspectedNodes)
+            if err != nil {
+                fmt.Println("Error serializing data:", err)
+                os.Exit(1)
+            }
+
+        
+            fmt.Println("Received lss command, sending list of suspected nodes...")
+            _, err = conn.WriteToUDP(jsonData, addr)
+
+            if err != nil {
+                fmt.Println("Failed to response to command message:", err)
+                return
+            }
+        
         } else if command == "lsg" {
             // send the list of nodes to the sender
             GossipNodesMutex.Lock()
