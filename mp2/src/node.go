@@ -145,6 +145,18 @@ func startHandlecommand() {
                 fmt.Println("Failed to response to command message:", err)
                 return
             }
+        } else if command == "lsi" {
+            // reply the self id
+            fmt.Println("Received lsi command, sending self id...", Id)
+
+            // transform the string to byte
+            _, err = conn.WriteToUDP([]byte(Id), addr)
+            
+            if err != nil {
+                fmt.Println("Failed to response to command message:", err)
+                return
+            }
+
         } else if command == "lsg" {
             // send the list of nodes to the sender
             GossipNodesMutex.Lock()
