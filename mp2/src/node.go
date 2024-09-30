@@ -36,6 +36,8 @@ var TIMEOUT_PERIOD = 1.0
 var SUSPECT_TIMEOUT = 5.0
 var Total_rounds = 0
 var False_Positive_rounds = 0
+var Previous_Node_Cnt = 0
+var False_Machine = 0
 
 var Introducer = false
 var GossipNodesMutex sync.Mutex
@@ -466,9 +468,16 @@ func startClient() {
                 False_Positive_rounds++;
             }
 
+            if Previous_Node_Cnt > len(global.Nodes) {
+                False_Machine++
+                Previous_Node_Cnt = len(global.Nodes)
+            }
+
             fmt.Println("Total_rounds: ", Total_rounds)
             fmt.Println("False_Positive_rounds: ", False_Positive_rounds)
             fmt.Println("False Positive Rate: ", float64(False_Positive_rounds) / float64(Total_rounds))
+            fmt.Println("False_Machine: ", False_Machine)
+            fmt.Println("Running Machine: ", len(global.Nodes))
         }
 	}
 }
