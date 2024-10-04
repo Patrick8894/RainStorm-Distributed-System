@@ -561,7 +561,7 @@ func pingIndirect(node global.NodeInfo) bool {
             GossipNodesMutex.Unlock()
 
             
-            addr, err := net.ResolveUDPAddr("udp", node.Address)
+            addr, err := net.ResolveUDPAddr("udp", rNode.Address)
             if err != nil {
                 fmt.Println("Error resolving server address:", err)
                 return
