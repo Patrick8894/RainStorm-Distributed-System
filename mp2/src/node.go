@@ -508,7 +508,7 @@ func startClient() {
                 False_Machine++
                 Previous_Node_Cnt = len(global.Nodes)
             }
-
+            // Conducting experiencets to count the false positive rate & detection time
             fmt.Println("Total_rounds: ", Total_rounds)
             fmt.Println("False_Positive_rounds: ", False_Positive_rounds)
             fmt.Println("False Positive Rate: ", float64(False_Positive_rounds) / float64(Total_rounds))
