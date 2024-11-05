@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"hash/crc32"
-	"net"
+    "fmt"
+    "hash/crc32"
+    "net"
     "os"
     "mp2/src/global"
 )
@@ -23,34 +23,33 @@ var membershipMutex sync.Mutex
 
 
 func main() {
-
-	err := deleteAllFiles(LocalDir)
+    err := deleteAllFiles(LocalDir)
     if err != nil {
         fmt.Println("Error deleting files:", err)
         os.Exit(1)
     }
 
-	membershipTicker := time.NewTicker(10 * time.Second)
+    membershipTicker := time.NewTicker(10 * time.Second)
     defer membershipTicker.Stop()
 
-	fileTicker := time.NewTicker(30 * time.Second)
+    fileTicker := time.NewTicker(30 * time.Second)
     defer ticker.Stop()
-	
-	go func() {
+
+    go func() {
         for range membershipTicker.C {
             updateMembershipList()
         }
     }()
 
-	go func() {
+    go func() {
         for range fileTicker.C {
             syncFiles()
         }
     }()
 
-	go startServer()
+    go startServer()
 
-	select {}
+    select {}
 }
 
 func deleteAllFiles(dir string) error {
@@ -108,26 +107,26 @@ func handleConnection(conn net.Conn) {
         fmt.Println("Received message:", message)
 
         // Handle the received message
-		parts := strings.Fields(message)
-		if len(parts) < 2 {
-			fmt.Println("Invalid command")
-			return
-		}
+        parts := strings.Fields(message)
+        if len(parts) < 2 {
+            fmt.Println("Invalid command")
+            return
+        }
 
-		command := parts[0]
-		filename := parts[1]
+        command := parts[0]
+        filename := parts[1]
 
-		switch command {
-		case "create":
-			handleCreate(conn, filename)
-		case "append":
-			handleAppend(conn, filename)
-		case "get":
-			handleGet(conn, filename)
-		// TODO: might need to handle update for sync here
-		default:
-			fmt.Println("Unknown command")
-		}
+        switch command {
+        case "create":
+            handleCreate(conn, filename)
+        case "append":
+            handleAppend(conn, filename)
+        case "get":
+            handleGet(conn, filename)
+        // TODO: might need to handle update for sync here
+        default:
+            fmt.Println("Unknown command")
+        }
     }
 }
 
@@ -284,49 +283,49 @@ func hashFunc(s string) int {
 }
 
 func updateMembershipList() {
-	conn, err := net.Dial("udp", "localhost:8082")
-	if err != nil {
-		fmt.Println("Error dialing introducer:", err)
-		return
-	}
-	defer conn.Close()
+    conn, err := net.Dial("udp", "localhost:8082")
+    if err != nil {
+        fmt.Println("Error dialing introducer:", err)
+        return
+    }
+    defer conn.Close()
 
-	data := []byte("ls")
-	_, err = conn.Write(data)
-	if err != nil {
-		fmt.Printf("Failed to send message: %v\n", err)
-	}
+    data := []byte("ls")
+    _, err = conn.Write(data)
+    if err != nil {
+        fmt.Printf("Failed to send message: %v\n", err)
+    }
 
-	buffer := make([]byte, 4096)
-	if err != nil {
-		fmt.Println("No response from select_node:", err)
-		return
-	}
+    buffer := make([]byte, 4096)
+    if err != nil {
+        fmt.Println("No response from select_node:", err)
+        return
+    }
 
-	var response map[string]global.NodeInfo
-	err = json.Unmarshal(buffer[:n], &response)
-	if err != nil {
-		fmt.Println("Failed to unmarshal message:", err)
-		return
-	}
-	
-	if response == cluster {
-		return
-	}
-	cluster = response
+    var response map[string]global.NodeInfo
+    err = json.Unmarshal(buffer[:n], &response)
+    if err != nil {
+        fmt.Println("Failed to unmarshal message:", err)
+        return
+    }
 
-	for file, _ := range localFile {
+    if response == cluster {
+        return
+    }
+    cluster = response
+
+    for file, _ := range localFile {
         replicas := findFileReplicas(file)
         localFile[file] = replicas
     }
 }
 
 func syncFiles() {
-	// TODO: periodically sync files accross all replicas, sync if this node is primary replica of the file
+    // TODO: periodically sync files accross all replicas, sync if this node is primary replica of the file
 }
 
 func findFileReplicas(filename string) []string {
-	fileHash := hashFile(filename)
+    fileHash := hashFile(filename)
     addressHashes := make([]int, 0, len(cluster))
     addressMap := make(map[int]string)
 
