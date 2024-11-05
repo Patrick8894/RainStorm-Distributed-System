@@ -9,7 +9,6 @@ import (
 )
 
 var LocalDir = "../data/"
-var Port = "8085"
 var RingMod = 256
 var ReplicationFactor = 3
 
@@ -74,13 +73,13 @@ func deleteAllFiles(dir string) error {
 }
 
 func startServer() {
-    listener, err := net.Listen("tcp", ":" + Port)
+    listener, err := net.Listen("tcp", ":" + global.HDFSPort)
     if err != nil {
         fmt.Println("Error starting server:", err)
         os.Exit(1)
     }
     defer listener.Close()
-    fmt.Println("Server started on port:", Port)
+    fmt.Println("Server started on port:", global.HDFSPort)
 
     for {
         conn, err := listener.Accept()
@@ -108,13 +107,16 @@ func handleConnection(conn net.Conn) {
 
         // Handle the received message
         parts := strings.Fields(message)
-        if len(parts) < 2 {
+        if len(parts) < 1 {
             fmt.Println("Invalid command")
             return
         }
-
+    
         command := parts[0]
-        filename := parts[1]
+        var filename string
+        if len(parts) > 1 {
+            filename = parts[1]
+        }
 
         switch command {
         case "create":
@@ -123,6 +125,8 @@ func handleConnection(conn net.Conn) {
             handleAppend(conn, filename)
         case "get":
             handleGet(conn, filename)
+        case "ls":
+            handleList(conn)
         // TODO: might need to handle update for sync here
         default:
             fmt.Println("Unknown command")
@@ -277,37 +281,18 @@ func handleGet(conn net.Conn, filename string) {
     fmt.Printf("File %s sent successfully\n", filename)
 }
 
-func hashFunc(s string) int {
-    h := crc32.ChecksumIEEE([]byte(s))
-    return int(h % uint32(ringMod))
+func handleList(conn net.Conn) {
+    for filename, _ := range localFile {
+        _, err := conn.Write([]byte(filename + "\n"))
+        if err != nil {
+            fmt.Println("Error writing to connection:", err)
+            return
+        }
+    }
 }
 
 func updateMembershipList() {
-    conn, err := net.Dial("udp", "localhost:8082")
-    if err != nil {
-        fmt.Println("Error dialing introducer:", err)
-        return
-    }
-    defer conn.Close()
-
-    data := []byte("ls")
-    _, err = conn.Write(data)
-    if err != nil {
-        fmt.Printf("Failed to send message: %v\n", err)
-    }
-
-    buffer := make([]byte, 4096)
-    if err != nil {
-        fmt.Println("No response from select_node:", err)
-        return
-    }
-
-    var response map[string]global.NodeInfo
-    err = json.Unmarshal(buffer[:n], &response)
-    if err != nil {
-        fmt.Println("Failed to unmarshal message:", err)
-        return
-    }
+    response := global.GetMembership()
 
     if response == cluster {
         return
@@ -315,46 +300,11 @@ func updateMembershipList() {
     cluster = response
 
     for file, _ := range localFile {
-        replicas := findFileReplicas(file)
+        replicas := global.FindFileReplicas(file)
         localFile[file] = replicas
     }
 }
 
 func syncFiles() {
     // TODO: periodically sync files accross all replicas, sync if this node is primary replica of the file
-}
-
-func findFileReplicas(filename string) []string {
-    fileHash := hashFile(filename)
-    addressHashes := make([]int, 0, len(cluster))
-    addressMap := make(map[int]string)
-
-    // Compute the hash of all addresses in the cluster
-    for _, node := range cluster {
-        addressHash := hashFile(node.Address)
-        addressHashes = append(addressHashes, addressHash)
-        addressMap[addressHash] = node.Address
-    }
-
-    // Sort the address hashes
-    sort.Ints(addressHashes)
-
-    // Find at most three replicas with hash values larger or equal to the file hash
-    replicas := make([]string, 0, ReplicationFactor)
-    for _, hash := range addressHashes {
-        if hash >= fileHash {
-            replicas = append(replicas, addressMap[hash])
-            if len(replicas) == ReplicationFactor {
-                return replicas
-            }
-        }
-    }
-
-    // If not enough replicas found, wrap around the ring
-    for _, hash := range addressHashes {
-        replicas = append(replicas, addressMap[hash])
-        if len(replicas) == ReplicationFactor {
-            break
-        }
-    }
 }

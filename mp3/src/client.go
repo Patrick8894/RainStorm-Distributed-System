@@ -7,8 +7,8 @@ import (
     "mp3/src/global"
 )
 
+var cluster map[string]global.NodeInfo
 // IMPORTANT: For HyDFS commands, pass arguments with with format "command filename" in TCP
-// Get membership from mp2 to find replicas for a file (you can refer to server.go in mp3)
 
 func main() {
     // Define the command-line arguments
@@ -46,33 +46,143 @@ func main() {
     case "create":
         createCmd.Parse(os.Args[2:])
         fmt.Printf("Creating file %s in HyDFS as %s\n", *createLocalFile, *createHyDFSFile)
-        // Implement the create functionality here
+        createFile(*createLocalFile, *createHyDFSFile)
+        
     case "get":
         getCmd.Parse(os.Args[2:])
         fmt.Printf("Getting file %s from HyDFS and saving as %s\n", *getHyDFSFile, *getLocalFile)
-        // Implement the get functionality here
+        getFile(*getHyDFSFile, *getLocalFile)
     case "append":
         appendCmd.Parse(os.Args[2:])
         fmt.Printf("Appending file %s to HyDFS file %s\n", *appendLocalFile, *appendHyDFSFile)
-        // Implement the append functionality here
+        appendFile(*appendLocalFile, *appendHyDFSFile)
     case "ls":
         lsCmd.Parse(os.Args[2:])
-        fmt.Printf("Listing details of HyDFS file %s\n", *lsHyDFSFile)
-        // Implement the ls functionality here
+        fmt.Printf("Listing all machine address that store the given HyDFS file %s\n", *lsHyDFSFile)
+        listMachine(*lsHyDFSFile)
     case "store":
         storeCmd.Parse(os.Args[2:])
-        fmt.Println("Listing all files stored in HyDFS")
-        // Implement the store functionality here
+        fmt.Println("Listing all files stored on Local machine")
+        listFiles()
     case "getfromreplica":
         getFromReplicaCmd.Parse(os.Args[2:])
         fmt.Printf("Getting file %s from replica at %s and saving as %s\n", *getFromReplicaHyDFSFile, *getFromReplicaVM, *getFromReplicaLocalFile)
-        // Implement the getfromreplica functionality here
+        getFileFromReplica(*getFromReplicaVM, *getFromReplicaHyDFSFile, *getFromReplicaLocalFile)
     case "list_mem_ids":
         listMemIdsCmd.Parse(os.Args[2:])
         fmt.Println("Listing all member IDs")
-        // Implement the list_mem_ids functionality here
+        listMemberIds()
     default:
         fmt.Println("Expected 'create', 'get', 'append', 'ls', 'store', 'getfromreplica', or 'list_mem_ids' subcommands")
         os.Exit(1)
+    }
+}
+
+func createFile(localfilename string, HyDFSfilename string) {
+    // TODO: Implement the create functionality here
+}
+
+func getFile(HyDFSfilename string, localfilename string) {
+    // TODO: Implement the get functionality here
+}
+
+func appendFile(localfilename string, HyDFSfilename string) {
+    // TODO: Implement the append functionality here
+}
+
+func listMachine(HyDFSfilename string) {
+    cluster = global.GetMembership()
+    replicas := global.FindFileReplicas(HyDFSfilename)
+    for _, replica := range replicas {
+        fmt.Println(replica)
+    }
+}
+
+func listFiles() {
+    conn, err := net.Dial("tcp", "localhost:" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        os.Exit(1)
+    }
+    defer conn.Close()
+
+    // Send the "ls" command
+    _, err = conn.Write([]byte("ls"))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        return
+    }
+
+    // Retrieve and print the response
+    buffer := make([]byte, 1024)
+    for {
+        n, err := conn.Read(buffer)
+        if err != nil {
+            if err.Error() == "EOF" {
+                break
+            }
+            fmt.Println("Error reading from connection:", err)
+            return
+        }
+        if n == 0 {
+            break
+        }
+        fmt.Print(string(buffer[:n]))
+    }
+}
+
+func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename string) {
+    // Connect to the server
+    conn, err := net.Dial("tcp", VMaddress + ":" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        return
+    }
+    defer conn.Close()
+
+    // Send the "get" command with the HyDFS filename
+    command := fmt.Sprintf("get %s", HyDFSfilename)
+    _, err = conn.Write([]byte(command))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        return
+    }
+
+    // Open the local file for writing
+    localFile, err := os.Create(localfilename)
+    if err != nil {
+        fmt.Println("Error creating local file:", err)
+        return
+    }
+    defer localFile.Close()
+
+    // Retrieve and save the file content
+    buffer := make([]byte, 1024)
+    for {
+        n, err := conn.Read(buffer)
+        if err != nil {
+            if err == io.EOF {
+                break
+            }
+            fmt.Println("Error reading from connection:", err)
+            return
+        }
+        if n == 0 {
+            break
+        }
+        _, err = localFile.Write(buffer[:n])
+        if err != nil {
+            fmt.Println("Error writing to local file:", err)
+            return
+        }
+    }
+
+    fmt.Printf("File %s retrieved and saved as %s\n", HyDFSfilename, localfilename)
+}
+
+func listMemberIds() {
+    cluster = global.GetMembership()
+    for _, node := range cluster {
+        fmt.Println(node.Address, global.HashFunc(node.Address))
     }
 }
