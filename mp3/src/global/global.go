@@ -47,6 +47,9 @@ func GetMembership() map[string]global.NodeInfo {
 }
 
 func FindFileReplicas(filename string) []string {
+    /*
+    Given a filename, return the ip ddresses of the three replicas.
+    */
     fileHash := global.HashFile(filename)
     addressHashes := make([]int, 0, len(cluster))
     addressMap := make(map[int]string)

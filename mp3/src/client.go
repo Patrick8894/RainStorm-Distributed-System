@@ -79,59 +79,148 @@ func main() {
 }
 
 func createFile(localfilename string, HyDFSfilename string) {
+    /*
+    Find the candidate server to create the HyDFS file and
+    send the local file to the candidate server.
+    */
     // TODO: Implement the create functionality here
+    // check if localfilename exists
+    _, err := os.Stat("data/"+localfilename)
+    if err != nil {
+        fmt.Println("Local file does not exist")
+        return
+    }
+
+    // get the HyDFSfilename id
+    candidates := global.FindFileReplicas(HyDFSfilename)
+    if len(candidates) == 0 {
+        fmt.Println("No candidates found")
+        return
+    }
+
+    for _, candidate := range candidates {
+        // use go routine to send the file to the candidate
+        createFileToCandidate(candidate, localfilename, HyDFSfilename)
+    }
+
 }
 
 func getFile(HyDFSfilename string, localfilename string) {
+    /*
+    Find server in the candidates 0 index to get the HyDFS file and
+    save the file to the local machine.
+    */
     // TODO: Implement the get functionality here
+
+    // get the candidate server to get the HyDFS file
+    candidates := global.FindFileReplicas(HyDFSfilename)
+    if len(candidates) == 0 {
+        fmt.Println("No candidates found")
+        return
+    }
+
+    // get the first candidate to get the file
+    getFileFromReplica(candidates[0], HyDFSfilename, localfilename)
+
 }
 
 func appendFile(localfilename string, HyDFSfilename string) {
     // TODO: Implement the append functionality here
-}
 
-func listMachine(HyDFSfilename string) {
-    cluster = global.GetMembership()
-    replicas := global.FindFileReplicas(HyDFSfilename)
-    for _, replica := range replicas {
-        fmt.Println(replica)
-    }
-}
-
-func listFiles() {
-    conn, err := net.Dial("tcp", "localhost:" + global.HDFSPort)
+    // check if localfilename exists
+    _, err := os.Stat("data/"+localfilename)
     if err != nil {
-        fmt.Println("Error connecting to server:", err)
-        os.Exit(1)
-    }
-    defer conn.Close()
-
-    // Send the "ls" command
-    _, err = conn.Write([]byte("ls"))
-    if err != nil {
-        fmt.Println("Error sending command:", err)
+        fmt.Println("Local file does not exist")
         return
     }
 
-    // Retrieve and print the response
-    buffer := make([]byte, 1024)
-    for {
-        n, err := conn.Read(buffer)
-        if err != nil {
-            if err.Error() == "EOF" {
-                break
-            }
-            fmt.Println("Error reading from connection:", err)
-            return
-        }
-        if n == 0 {
-            break
-        }
-        fmt.Print(string(buffer[:n]))
+    // get the HyDFSfilename ip
+    candidates := global.FindFileReplicas(HyDFSfilename)
+    if len(candidates) == 0 {
+        fmt.Println("No candidates found")
+        return
+    }
+
+    for _, candidate := range candidates {
+        // use go routine to send the file to the candidate
+        appendFileToCandidate(candidate, localfilename, HyDFSfilename)
     }
 }
 
+
+
+
+
+func createFileToCandidate(candidate string, localfilename string, HyDFSfilename string) {
+    /*
+    Connect and Send the local file to the candidate server to create the HyDFS file.
+    */
+    conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        continue
+    }
+    defer conn.Close()
+
+    // Send the "create" command with the HyDFS filename
+    command := fmt.Sprintf("create %s", HyDFSfilename)
+    _, err = conn.Write([]byte(command))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        continue
+    }
+
+
+    // check the response from the server to check if server create the HyDFS file
+    buffer := make([]byte, 1024)
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("Error reading from connection:", err)
+        return
+    }
+    response := string(buffer[:n])
+    if response != "OK" {
+        fmt.Println("Error creating file:", response)
+        return
+    }
+
+    // Open the local file for reading
+    localFile, err := os.Open(localfilename)
+    if err != nil {
+        fmt.Println("Error opening local file:", err)
+        continue
+    }
+    defer localFile.Close()
+
+    // Read and send the file content
+    buffer := make([]byte, 1024)
+    for {
+        n, err := localFile.Read(buffer)
+        if err != nil {
+            if err == io.EOF {
+                break
+            }
+            fmt.Println("Error reading from local file:", err)
+            return
+        }
+        _, err = conn.Write(buffer[:n])
+        if err != nil {
+            fmt.Println("Error writing to connection:", err)
+            return
+        }
+    }
+
+    fmt.Printf("File %s sent to %s\n", localfilename, candidate)
+}
+
+
+
+
 func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename string) {
+    /*
+    Get the HyDFS file from the replica server and save it to the local machine.
+    If the file exists, overwrite it.
+    */
     // Connect to the server
     conn, err := net.Dial("tcp", VMaddress + ":" + global.HDFSPort)
     if err != nil {
@@ -146,6 +235,13 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
     if err != nil {
         fmt.Println("Error sending command:", err)
         return
+    }
+
+
+    // Check if the file exists
+    if _, err := os.Stat(localfilename); err == nil {
+        // File exists, overwrite it
+        os.Remove(localfilename)
     }
 
     // Open the local file for writing
@@ -178,6 +274,122 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
     }
 
     fmt.Printf("File %s retrieved and saved as %s\n", HyDFSfilename, localfilename)
+}
+
+
+func appendFileToCandidate(candidate string, localfilename string, HyDFSfilename string) {
+    /*
+    Connect and append the local file to the candidate server.
+    */
+
+    conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        continue
+    }
+    defer conn.Close()
+
+    // Send the "append" command with the HyDFS filename
+    command := fmt.Sprintf("append %s", HyDFSfilename)
+    _, err = conn.Write([]byte(command))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        continue
+    }
+
+    // check the response from the server to check if server create the HyDFS file
+    buffer := make([]byte, 1024)
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("Error reading from connection:", err)
+        return
+    }
+
+    response := string(buffer[:n])
+    if response != "OK" {
+        fmt.Println("Error appending file:", response)
+        return
+    }
+
+    // Open the local file for reading
+    localFile, err := os.Open(localfilename)
+    if err != nil {
+        fmt.Println("Error opening local file:", err)
+        continue
+    }
+
+    defer localFile.Close()
+
+    // Read and send the file content
+    buffer := make([]byte, 1024)
+    for {
+        n, err := localFile.Read(buffer)
+        if err != nil {
+            if err == io.EOF {
+                break
+            }
+            fmt.Println("Error reading from local file:", err)
+            return
+        }
+        _, err = conn.Write(buffer[:n])
+        if err != nil {
+            fmt.Println("Error writing to connection:", err)
+            return
+        }
+    }
+
+    fmt.Printf("File %s appended to %s\n", localfilename, candidate)
+}
+
+
+
+func listMachine(HyDFSfilename string) {
+    /*
+    For Command "ls"
+    list all the machine addresses that store the given HyDFS file.
+    */
+    cluster = global.GetMembership()
+    replicas := global.FindFileReplicas(HyDFSfilename)
+    for _, replica := range replicas {
+        fmt.Println(replica)
+    }
+}
+
+
+
+
+
+func listFiles() {
+    conn, err := net.Dial("tcp", "localhost:" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        os.Exit(1)
+    }
+    defer conn.Close()
+
+    // Send the "ls" command
+    _, err = conn.Write([]byte("ls"))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        return
+    }
+
+    // Retrieve and print the response
+    buffer := make([]byte, 1024)
+    for {
+        n, err := conn.Read(buffer)
+        if err != nil {
+            if err.Error() == "EOF" {
+                break
+            }
+            fmt.Println("Error reading from connection:", err)
+            return
+        }
+        if n == 0 {
+            break
+        }
+        fmt.Print(string(buffer[:n]))
+    }
 }
 
 func listMemberIds() {
