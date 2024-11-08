@@ -4,6 +4,10 @@ import (
     "flag"
     "fmt"
     "os"
+    "sync" 
+    "net"
+    "io"
+    "strings"
     "mp3/src/global"
 )
 
@@ -160,7 +164,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
         wg.Add(1)
         go func(candidate string) {
             defer wg.Done()
-            response := checkappendFileToCandidate(conns[i], candidate, localfilename, HyDFSfilename)
+            response := checkappendFileToCandidate(conns[i], localfilename, HyDFSfilename)
             responses <- response
         }(candidate)
     }
@@ -174,7 +178,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }
     }
 
-    for i in range(len(candidates)) {
+    for i := 0; i < len(candidates); i++ {
         go appendFileToCandidate(conns[i], localfilename, HyDFSfilename)
     }
 
@@ -189,7 +193,7 @@ func createFileToCandidate(candidate string, localfilename string, HyDFSfilename
     conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
     if err != nil {
         fmt.Println("Error connecting to server:", err)
-        continue
+        return
     }
     defer conn.Close()
 
@@ -198,7 +202,7 @@ func createFileToCandidate(candidate string, localfilename string, HyDFSfilename
     _, err = conn.Write([]byte(command))
     if err != nil {
         fmt.Println("Error sending command:", err)
-        continue
+        return
     }
 
 
@@ -219,12 +223,11 @@ func createFileToCandidate(candidate string, localfilename string, HyDFSfilename
     localFile, err := os.Open(localfilename)
     if err != nil {
         fmt.Println("Error opening local file:", err)
-        continue
+        return
     }
     defer localFile.Close()
 
     // Read and send the file content
-    buffer := make([]byte, 1024)
     for {
         n, err := localFile.Read(buffer)
         if err != nil {
@@ -295,7 +298,7 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
             return
         }
         if n == 0 {
-            break
+            continue
         }
         _, err = localFile.Write(buffer[:n])
         if err != nil {
@@ -308,25 +311,18 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
 }
 
 
-func checkappendFileToCandidate(conn net.Conn, candidate string, localfilename string, HyDFSfilename string) {
+func checkappendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename string) string{
     /*
     Check the server all reply "Success" to client
     If all sucess then start append
     */
 
-    conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
-    if err != nil {
-        fmt.Println("Error connecting to server:", err)
-        continue
-    }
-    defer conn.Close()
-
     // Send the "append" command with the HyDFS filename
     command := fmt.Sprintf("append %s", HyDFSfilename)
-    _, err = conn.Write([]byte(command))
+    _, err := conn.Write([]byte(command))
     if err != nil {
         fmt.Println("Error sending command:", err)
-        continue
+        return "Fail"
     }
 
     // check the response from the server to check if server create the HyDFS file
@@ -342,11 +338,11 @@ func checkappendFileToCandidate(conn net.Conn, candidate string, localfilename s
         fmt.Println("Error appending file:", response)
         return "Fail"
     }
-    
+    return "Success"
 }
 
 
-func appendFileToCandidate(conn net.Conn,  candidate string, localfilename string, HyDFSfilename string) {
+func appendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename string) {
     /*
     Connect and append the local file to the candidate server.
     */
@@ -355,7 +351,7 @@ func appendFileToCandidate(conn net.Conn,  candidate string, localfilename strin
     localFile, err := os.Open(localfilename)
     if err != nil {
         fmt.Println("Error opening local file:", err)
-        continue
+        return
     }
 
     defer localFile.Close()
@@ -377,8 +373,6 @@ func appendFileToCandidate(conn net.Conn,  candidate string, localfilename strin
             return
         }
     }
-
-    fmt.Printf("File %s appended to %s\n", localfilename, candidate)
 }
 
 
