@@ -6,4 +6,6 @@ out.log
 mp1/data/*
 control
 node
+server
+client
 mp3/data/*
