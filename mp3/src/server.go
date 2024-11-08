@@ -2,10 +2,14 @@ package main
 
 import (
     "fmt"
-    "hash/crc32"
     "net"
     "os"
-    "mp2/src/global"
+    "mp3/src/global"
+    "sync" 
+    "time" 
+    "path/filepath"
+    "strings"
+    "io"
 )
 
 var LocalDir = "../data/"
@@ -31,13 +35,13 @@ func main() {
         return
     }
 
-    SelfAddress = hostname + ":" + PORT
+    SelfAddress = hostname + ":" + global.HDFSPort
 
     membershipTicker := time.NewTicker(10 * time.Second)
     defer membershipTicker.Stop()
 
     fileTicker := time.NewTicker(30 * time.Second)
-    defer ticker.Stop()
+    defer fileTicker.Stop()
 
     go func() {
         for range membershipTicker.C {
@@ -203,7 +207,6 @@ func handleCreate(conn net.Conn, filename string) {
 }
 
 func handleAppend(conn net.Conn, filename string) {
-    filePath := LocalDir + filename
 
     localFileMutex.Lock()
     // Check if the file exists
@@ -335,6 +338,23 @@ func handleGet(conn net.Conn, filename string) {
         fmt.Printf("Cached content for file %s sent successfully\n", filename)
     } else {
         fmt.Printf("No cached content to send for file %s\n", filename)
+    }
+}
+
+func handleList(conn net.Conn) {
+    localFileMutex.Lock()
+    defer localFileMutex.Unlock()
+
+    var files []string
+    for file, _ := range localFile {
+        files = append(files, file)
+    }
+
+    response := strings.Join(files, "\n")
+    _, err := conn.Write([]byte(response))
+    if err != nil {
+        fmt.Println("Error writing to connection:", err)
+        return
     }
 }
 
@@ -472,7 +492,7 @@ func updateMembershipList() {
     localFileMutex.Lock()
     response := global.GetMembership()
 
-    if response == global.Cluster {
+    if mapsEqual(response, global.Cluster) {
         return
     }
     global.Cluster = response
@@ -482,6 +502,18 @@ func updateMembershipList() {
         localFile[file] = replicas
     }
     localFileMutex.Unlock()
+}
+
+func mapsEqual(a, b map[string]global.NodeInfo) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for k, v := range a {
+        if bv, ok := b[k]; !ok || v != bv {
+            return false
+        }
+    }
+    return true
 }
 
 func syncFiles() {

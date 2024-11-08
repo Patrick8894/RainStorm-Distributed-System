@@ -1,18 +1,38 @@
 package global
 
+import (
+    "encoding/json"
+    "fmt"
+    "hash/crc32"
+    "net"
+    "sort"
+    "strings"
+)
+
+type State int
+
+const (
+    Suspected State = iota
+    Alive
+    Down
+    Join
+)
+
 type NodeInfo struct {
 	ID 	string
     Address string
     State   State
 }
 
-HDFSPort := "8085"
-SWIMPort := "8082"
-RingMod := 256
-ReplicationFactor := 3
+const (
+    HDFSPort           = "8085"
+    SWIMPort           = "8082"
+    RingMod            = 256
+    ReplicationFactor  = 3
+)
 
 
-var Cluster map[string]global.NodeInfo
+var Cluster map[string]NodeInfo
 
 func HashFunc(s string) int {
     h := crc32.ChecksumIEEE([]byte(s))
@@ -23,7 +43,7 @@ func GetMembership() map[string]NodeInfo {
     conn, err := net.Dial("udp", "localhost:" + SWIMPort)
     if err != nil {
         fmt.Println("Error dialing introducer:", err)
-        return
+        return nil
     }
     defer conn.Close()
 
@@ -36,19 +56,23 @@ func GetMembership() map[string]NodeInfo {
     buffer := make([]byte, 4096)
     if err != nil {
         fmt.Println("No response from select_node:", err)
-        return
+        return nil
+    }
+
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("Failed to read message:", err)
+        return nil
     }
 
     var response map[string]NodeInfo
     err = json.Unmarshal(buffer[:n], &response)
     if err != nil {
         fmt.Println("Failed to unmarshal message:", err)
-        return
+        return nil
     }
 
-    if response == Cluster {
-        return
-    }
+    return response
 }
 
 func FindFileReplicas(filename string) []string {
@@ -61,9 +85,9 @@ func FindFileReplicas(filename string) []string {
 
     // Compute the hash of all addresses in the cluster
     for _, node := range Cluster {
-        addressHash := HashFunc(node.Address, HDFSPort)
+        addressHash := HashFunc(node.Address)
         addressHashes = append(addressHashes, addressHash)
-        addressMap[addressHash] = UpdateAddressPort(node.Address)
+        addressMap[addressHash] = UpdateAddressPort(node.Address, HDFSPort)
     }
 
     // Sort the address hashes
