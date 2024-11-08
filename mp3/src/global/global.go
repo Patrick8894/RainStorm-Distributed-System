@@ -8,14 +8,19 @@ type NodeInfo struct {
 
 HDFSPort := "8085"
 SWIMPort := "8082"
+RingMod := 256
+ReplicationFactor := 3
+
+
+var Cluster map[string]global.NodeInfo
 
 func HashFunc(s string) int {
     h := crc32.ChecksumIEEE([]byte(s))
-    return int(h % uint32(ringMod))
+    return int(h % uint32(RingMod))
 }
 
-func GetMembership() map[string]global.NodeInfo {
-    conn, err := net.Dial("udp", "localhost:" + global.SWIMPort)
+func GetMembership() map[string]NodeInfo {
+    conn, err := net.Dial("udp", "localhost:" + SWIMPort)
     if err != nil {
         fmt.Println("Error dialing introducer:", err)
         return
@@ -34,14 +39,14 @@ func GetMembership() map[string]global.NodeInfo {
         return
     }
 
-    var response map[string]global.NodeInfo
+    var response map[string]NodeInfo
     err = json.Unmarshal(buffer[:n], &response)
     if err != nil {
         fmt.Println("Failed to unmarshal message:", err)
         return
     }
 
-    if response == cluster {
+    if response == Cluster {
         return
     }
 }
@@ -50,15 +55,15 @@ func FindFileReplicas(filename string) []string {
     /*
     Given a filename, return the ip ddresses of the three replicas.
     */
-    fileHash := global.HashFile(filename)
-    addressHashes := make([]int, 0, len(cluster))
+    fileHash := HashFunc(filename)
+    addressHashes := make([]int, 0, len(Cluster))
     addressMap := make(map[int]string)
 
     // Compute the hash of all addresses in the cluster
-    for _, node := range cluster {
-        addressHash := global.HashFile(node.Address)
+    for _, node := range Cluster {
+        addressHash := HashFunc(node.Address, HDFSPort)
         addressHashes = append(addressHashes, addressHash)
-        addressMap[addressHash] = node.Address
+        addressMap[addressHash] = UpdateAddressPort(node.Address)
     }
 
     // Sort the address hashes
@@ -82,4 +87,16 @@ func FindFileReplicas(filename string) []string {
             break
         }
     }
+    return replicas
+}
+
+func UpdateAddressPort(address, newPort string) string {
+    parts := strings.Split(address, ":")
+    if len(parts) != 2 {
+        // Handle error if the address does not match the expected format
+        fmt.Println("Invalid address format")
+        return address
+    }
+    host := parts[0]
+    return fmt.Sprintf("%s:%s", host, newPort)
 }
