@@ -11,7 +11,6 @@ import (
     "mp3/src/global"
 )
 
-var cluster map[string]global.NodeInfo
 // IMPORTANT: For HyDFS commands, pass arguments with with format "command filename" in TCP
 
 func main() {
@@ -382,7 +381,7 @@ func listMachine(HyDFSfilename string) {
     For Command "ls"
     list all the machine addresses that store the given HyDFS file.
     */
-    cluster = global.GetMembership()
+    global.Cluster = global.GetMembership()
     replicas := global.FindFileReplicas(HyDFSfilename)
     for _, replica := range replicas {
         fmt.Println(replica)
@@ -427,8 +426,8 @@ func listFiles() {
 }
 
 func listMemberIds() {
-    cluster = global.GetMembership()
-    for _, node := range cluster {
+    global.Cluster = global.GetMembership()
+    for _, node := range global.Cluster {
         fmt.Println(node.Address, global.HashFunc(node.Address))
     }
 }
