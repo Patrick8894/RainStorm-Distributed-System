@@ -141,14 +141,45 @@ func appendFile(localfilename string, HyDFSfilename string) {
         return
     }
 
-    for _, candidate := range candidates {
+    var wg sync.WaitGroup
+    responses := make(chan string, len(candidates))
+    
+    conns := make([]net.Conn, len(candidates))
+
+    for i, candidate := range candidates {
         // use go routine to send the file to the candidate
-        appendFileToCandidate(candidate, localfilename, HyDFSfilename)
+
+        conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
+        if err != nil {
+            fmt.Println("Error connecting to server:", err)
+            continue
+        }
+        defer conn.Close()
+        conns[i] = conn
+
+        wg.Add(1)
+        go func(candidate string) {
+            defer wg.Done()
+            response := checkappendFileToCandidate(conns[i], candidate, localfilename, HyDFSfilename)
+            responses <- response
+        }(candidate)
     }
+
+    wg.Wait()
+    close(responses)
+    for response := range responses {
+        if strings.HasPrefix(response, "Fail") {
+            fmt.Println("server fail to creat files", response)
+            return
+        }
+    }
+
+    for i in range(len(candidates)) {
+        go appendFileToCandidate(conns[i], localfilename, HyDFSfilename)
+    }
+
+
 }
-
-
-
 
 
 func createFileToCandidate(candidate string, localfilename string, HyDFSfilename string) {
@@ -175,11 +206,11 @@ func createFileToCandidate(candidate string, localfilename string, HyDFSfilename
     buffer := make([]byte, 1024)
     n, err := conn.Read(buffer)
     if err != nil {
-        fmt.Println("Error reading from connection:", err)
+        fmt.Println("Error reading from connection to check success or fail:", err)
         return
     }
     response := string(buffer[:n])
-    if response != "OK" {
+    if strings.HasPrefix(response, "Fail") {
         fmt.Println("Error creating file:", response)
         return
     }
@@ -277,9 +308,10 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
 }
 
 
-func appendFileToCandidate(candidate string, localfilename string, HyDFSfilename string) {
+func checkappendFileToCandidate(conn net.Conn, candidate string, localfilename string, HyDFSfilename string) {
     /*
-    Connect and append the local file to the candidate server.
+    Check the server all reply "Success" to client
+    If all sucess then start append
     */
 
     conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
@@ -302,14 +334,22 @@ func appendFileToCandidate(candidate string, localfilename string, HyDFSfilename
     n, err := conn.Read(buffer)
     if err != nil {
         fmt.Println("Error reading from connection:", err)
-        return
+        return "Fail"
     }
 
     response := string(buffer[:n])
-    if response != "OK" {
+    if strings.HasPrefix(response, "Fail") {
         fmt.Println("Error appending file:", response)
-        return
+        return "Fail"
     }
+    
+}
+
+
+func appendFileToCandidate(conn net.Conn,  candidate string, localfilename string, HyDFSfilename string) {
+    /*
+    Connect and append the local file to the candidate server.
+    */
 
     // Open the local file for reading
     localFile, err := os.Open(localfilename)
