@@ -25,6 +25,7 @@ func main() {
     createCmd := flag.NewFlagSet("create", flag.ExitOnError)
     getCmd := flag.NewFlagSet("get", flag.ExitOnError)
     appendCmd := flag.NewFlagSet("append", flag.ExitOnError)
+    mergeCmd := flag.NewFlagSet("merge", flag.ExitOnError)
     lsCmd := flag.NewFlagSet("ls", flag.ExitOnError)
     storeCmd := flag.NewFlagSet("store", flag.ExitOnError)
     getFromReplicaCmd := flag.NewFlagSet("getfromreplica", flag.ExitOnError)
@@ -40,6 +41,8 @@ func main() {
     appendLocalFile := appendCmd.String("localfilename", "", "Local file name")
     appendHyDFSFile := appendCmd.String("HyDFSfilename", "", "HyDFS file name")
 
+    mergeLocalFile := mergeCmd.String("HyDFSfilename", "", "HyDFS file name")
+
     lsHyDFSFile := lsCmd.String("HyDFSfilename", "", "HyDFS file name")
 
     getFromReplicaVM := getFromReplicaCmd.String("VMaddress", "", "VM address")
@@ -48,7 +51,7 @@ func main() {
 
     // Parse the command-line arguments
     if len(os.Args) < 2 {
-        fmt.Println("Expected 'create', 'get', 'append', 'ls', 'store', 'getfromreplica', or 'list_mem_ids' subcommands")
+        fmt.Println("Expected 'create', 'get', 'append', 'merge', 'ls', 'store', 'getfromreplica', or 'list_mem_ids' subcommands")
         os.Exit(1)
     }
 
@@ -66,6 +69,10 @@ func main() {
         appendCmd.Parse(os.Args[2:])
         fmt.Printf("Appending file %s to HyDFS file %s\n", *appendLocalFile, *appendHyDFSFile)
         appendFile(*appendLocalFile, *appendHyDFSFile)
+    case "merge":
+        mergeCmd.Parse(os.Args[2:])
+        fmt.Printf("Merging file %s in HyDFS\n", *mergeLocalFile)
+        mergeFile(*mergeLocalFile)
     case "ls":
         lsCmd.Parse(os.Args[2:])
         fmt.Printf("Listing all machine address that store the given HyDFS file %s\n", *lsHyDFSFile)
@@ -415,6 +422,44 @@ func appendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename st
             fmt.Println("Error writing to connection:", err)
             return
         }
+    }
+}
+
+func mergeFile(HyDFSfilename string) {
+    /*
+    Merge the HyDFS file from all the replicas.
+    */
+    primaryReplica := global.FindFileReplicas(HyDFSfilename)[0]
+    conn, err := net.Dial("tcp", primaryReplica + ":" + global.HDFSPort)
+    if err != nil {
+        fmt.Println("Error connecting to server:", err)
+        return
+    }
+    defer conn.Close()
+
+    // Send the "merge" command with the HyDFS filename
+    command := fmt.Sprintf("merge %s", HyDFSfilename)
+    _, err = conn.Write([]byte(command))
+    if err != nil {
+        fmt.Println("Error sending command:", err)
+        return
+    }
+
+    // Retrieve and print the response
+    buffer := make([]byte, 1024)
+    for {
+        n, err := conn.Read(buffer)
+        if err != nil {
+            if err.Error() == "EOF" {
+                break
+            }
+            fmt.Println("Error reading from connection:", err)
+            return
+        }
+        if n == 0 {
+            break
+        }
+        fmt.Print(string(buffer[:n]))
     }
 }
 

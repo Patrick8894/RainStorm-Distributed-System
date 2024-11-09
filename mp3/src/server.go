@@ -144,6 +144,8 @@ func handleConnection(conn net.Conn) {
             handleAppend(conn, filename)
         case "get":
             handleGet(conn, filename)
+        case "merge":
+            handleMerge(conn, filename)
         case "ls":
             handleList(conn)
         case "update":
@@ -356,6 +358,79 @@ func handleGet(conn net.Conn, filename string) {
         fmt.Printf("Cached content for file %s sent successfully\n", filename)
     } else {
         fmt.Printf("No cached content to send for file %s\n", filename)
+    }
+}
+
+func handleMerge(conn net.Conn, filename string) {
+    localFileMutex.Lock()
+    defer localFileMutex.Unlock()
+    // Check if the file exists
+    if _, exists := localFile[filename]; !exists {
+        // File does not exist
+        _, err := conn.Write([]byte("Fail: File does not exist\n"))
+        if err != nil {
+            fmt.Println("Error writing to connection:", err)
+        }
+        return
+    }
+
+    replicas := localFile[filename]
+
+    // Check if this node is the primary replica
+    if replicas[0] != SelfAddress {
+        // Not the primary replica
+        _, err := conn.Write([]byte("Fail: Not the primary replica\n"))
+        if err != nil {
+            fmt.Println("Error writing to connection:", err)
+        }
+        return
+    }
+
+    // Primary replica, ready to merge
+    for _, replica := range replicas[1:] {
+        syncReplicaFile(filename, replica)
+    }
+
+    // Append cached content to disk and delete the entry
+    filePath := LocalDir + filename
+
+    // Check if additional cached content exists for the file
+    cachedFileMutex.Lock()
+    defer cachedFileMutex.Unlock()
+
+    if content, exists := cachedFile[filename]; exists {
+
+        diskMutex.Lock()
+        defer diskMutex.Unlock()
+        // Open the file in append mode, create it if it does not exist
+        file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+        if err != nil {
+            fmt.Println("Error opening file:", err)
+            return
+        }
+        defer file.Close()
+
+        // Append cached content to the file
+        bufferSize := 1024
+        for start := 0; start < len(content); start += bufferSize {
+            end := start + bufferSize
+            if end > len(content) {
+                end = len(content)
+            }
+
+            // Write the slice of content in the range [start:end]
+            _, err := file.Write(content[start:end])
+            if err != nil {
+                fmt.Println("Error writing cached content to file:", err)
+                return
+            }
+        }
+        fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
+
+        // Remove the entry from cachedFile
+        delete(cachedFile, filename)
+    } else {
+        fmt.Printf("No cached content to append for file %s\n", filename)
     }
 }
 
@@ -726,6 +801,8 @@ func syncReplicaFile(filename string, replica string) {
 // SendPrimaryReplica sends the file content to the primary replica before deleting the file
 func sendPrimaryReplica(filename string, primaryReplica string) {
 
+    filePath := LocalDir + filename
+
     conn, err := net.Dial("tcp", primaryReplica)
     if err != nil {
         fmt.Println("Error connecting to primary replica:", err)
@@ -762,12 +839,11 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
         delete(cachedFile, filename)
         cachedFileMutex.Unlock()
         delete(localFile, filename)
-        
+
         return
     }
 
     // Open the file to read its content
-    filePath := LocalDir + filename
     diskMutex.Lock()
     if _, err := os.Stat(filePath); err == nil {
         // File exists, read and return the content
