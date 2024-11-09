@@ -115,46 +115,45 @@ func handleConnection(conn net.Conn) {
     fmt.Println("Client connected:", conn.RemoteAddr().String())
 
     buffer := make([]byte, 1024)
-    for {
-        n, err := conn.Read(buffer)
-        if err != nil {
-            fmt.Println("Error reading from connection:", err)
-            return
-        }
-        message := string(buffer[:n])
-        fmt.Println("Received message:", message)
 
-        // Handle the received message
-        parts := strings.Fields(message)
-        if len(parts) < 1 {
-            fmt.Println("Invalid command")
-            return
-        }
-    
-        command := parts[0]
-        var filename string
-        if len(parts) > 1 {
-            filename = parts[1]
-        }
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("Error reading from connection:", err)
+        return
+    }
+    message := string(buffer[:n])
+    fmt.Println("Received message:", message)
 
-        switch command {
-        case "create":
-            handleCreate(conn, filename)
-        case "append":
-            handleAppend(conn, filename)
-        case "get":
-            handleGet(conn, filename)
-        case "merge":
-            handleMerge(conn, filename)
-        case "ls":
-            handleList(conn)
-        case "update":
-            handleUpdate(conn, filename)
-        case "sync":
-            handleSync(conn, filename)
-        default:
-            fmt.Println("Unknown command")
-        }
+    // Handle the received message
+    parts := strings.Fields(message)
+    if len(parts) < 1 {
+        fmt.Println("Invalid command")
+        return
+    }
+
+    command := parts[0]
+    var filename string
+    if len(parts) > 1 {
+        filename = parts[1]
+    }
+
+    switch command {
+    case "create":
+        handleCreate(conn, filename)
+    case "append":
+        handleAppend(conn, filename)
+    case "get":
+        handleGet(conn, filename)
+    case "merge":
+        handleMerge(conn, filename)
+    case "ls":
+        handleList(conn)
+    case "update":
+        handleUpdate(conn, filename)
+    case "sync":
+        handleSync(conn, filename)
+    default:
+        fmt.Println("Unknown command")
     }
 }
 
