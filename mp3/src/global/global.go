@@ -31,15 +31,21 @@ const (
     ReplicationFactor  = 3
 )
 
-
+// Cluster is a map of ip addresses to node information
 var Cluster map[string]NodeInfo
 
 func HashFunc(s string) int {
+    /*
+    Hash the filename to an integer value from 0 to RingMod - 1.
+    */
     h := crc32.ChecksumIEEE([]byte(s))
     return int(h % uint32(RingMod))
 }
 
 func GetMembership() map[string]NodeInfo {
+    /*
+    Get the membership list from local SWIM protocol.
+    */
     conn, err := net.Dial("udp", "localhost:" + SWIMPort)
     if err != nil {
         fmt.Println("Error dialing introducer:", err)

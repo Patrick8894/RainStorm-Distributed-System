@@ -38,10 +38,12 @@ func main() {
     }
 
     SelfAddress = hostname + ":" + global.HDFSPort
-
+    // Every 10 seconds, update the membership list
     membershipTicker := time.NewTicker(10 * time.Second)
     defer membershipTicker.Stop()
 
+    // Every 30 seconds, sync files
+    // it will sync the primary nodes to the replicas
     fileTicker := time.NewTicker(30 * time.Second)
     defer fileTicker.Stop()
 
@@ -63,6 +65,9 @@ func main() {
 }
 
 func deleteAllFiles(dir string) error {
+    /*
+    Delete all files in the given directory.
+    */
     d, err := os.Open(dir)
     if err != nil {
         return err
@@ -84,6 +89,9 @@ func deleteAllFiles(dir string) error {
 }
 
 func startServer() {
+    /*
+    Start the server to listen for incoming connections.
+    */
     listener, err := net.Listen("tcp", ":" + global.HDFSPort)
     if err != nil {
         fmt.Println("Error starting server:", err)
@@ -212,7 +220,9 @@ func handleCreate(conn net.Conn, filename string) {
 }
 
 func handleAppend(conn net.Conn, filename string) {
-
+    /*
+    Append the content from Client to the local file with the given filename.
+    */
     localFileMutex.Lock()
     // Check if the file exists
     if _, exists := localFile[filename]; !exists {
@@ -259,6 +269,9 @@ func handleAppend(conn net.Conn, filename string) {
 }
 
 func handleGet(conn net.Conn, filename string) {
+    /*
+    Get the content of the file with the given filename and send it to the Client.
+    */
     filePath := LocalDir + filename
 
     localFileMutex.Lock()
@@ -347,6 +360,10 @@ func handleGet(conn net.Conn, filename string) {
 }
 
 func handleList(conn net.Conn) {
+    /*
+    For demo.
+    Search the local directory and send the list of files to the Client.
+    */
     localFileMutex.Lock()
     defer localFileMutex.Unlock()
 
@@ -365,6 +382,9 @@ func handleList(conn net.Conn) {
 
 
 func handleUpdate(conn net.Conn, filename string) {
+    /*
+    For the privous replica node, send the file content to the primary replica before deleting the file.
+    */
     filePath := LocalDir + filename
 
     // Check if the file already exists
@@ -425,6 +445,9 @@ func handleUpdate(conn net.Conn, filename string) {
 }
 
 func handleSync(conn net.Conn, filename string) {
+    /*
+    The replica node receive the sync request from primary node
+    */
     filePath := LocalDir + filename
 
     diskMutex.Lock()
@@ -522,6 +545,9 @@ func mapsEqual(a, b map[string]global.NodeInfo) bool {
 }
 
 func syncFiles() {
+    /*
+    Primary node sync the file content to the replica node.
+    */
     localFileMutex.Lock()
     defer localFileMutex.Unlock()
 
@@ -602,7 +628,9 @@ func syncFiles() {
 }
 
 func syncReplicaFile(filename string, replica string) {
-
+    /*
+    Put the memory content to local disk
+    */
     filePath := LocalDir + filename
 
     conn, err := net.Dial("tcp", replica)
