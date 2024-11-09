@@ -3,7 +3,6 @@ package cache
 import (
     "container/list"
     "fmt"
-    "io"
     "mp3/src/global"
     "net"
     "os"
@@ -38,7 +37,9 @@ func GetCacheEntry(filename string) *CacheEntry {
         // LRU cache: move the entry to the front of the list
         CacheList.MoveToFront(elem)
         return elem.Value.(*CacheEntry)
-    } else return nil
+    } else {
+        return nil
+    }
 }
 
 func addToCache(filename string, data []byte, lastModified time.Time) {

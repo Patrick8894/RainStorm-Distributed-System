@@ -134,24 +134,20 @@ func getFile(HyDFSfilename string, localfilename string) {
     // TODO: Implement the get functionality here
 
     // First check if the file exists in the cache
-    cache.CacheMutex.Lock()
     entry := cache.Cache[HyDFSfilename]
-    cache.CacheMutex.Unlock()
 
     if entry != nil {
         // Check if the cached file is up-to-date
-        if cache.CheckCacheValidity(HyDFSfilename, entry.Value.(*cache.CacheEntry).LastModified) {
+        if cache.CheckCacheValidity(HyDFSfilename, entry.lastModified) {
             // Cache is up-to-date, copy the file to the local machine
-            err := os.WriteFile(localfilename, entry.Value.(*cache.CacheEntry).Data, 0644)
+            err := os.WriteFile(localfilename, entry.data, 0644)
             if err != nil {
                 fmt.Println("Error writing to local file:", err)
                 return
             }
         } else {
             // Cache is not up-to-date, delete the cache entry
-            cache.CacheMutex.Lock()
             cache.DeleteCacheEntry(HyDFSfilename)
-            cache.CacheMutex.Unlock()
         }
     }
         
@@ -167,9 +163,7 @@ func getFile(HyDFSfilename string, localfilename string) {
     getFileFromReplica(candidates[0], HyDFSfilename, localfilename)
 
     // save the file to the cache
-    cache.CacheMutex.Lock()
     cache.addToCache(HyDFSfilename, localfilename)
-    cache.CacheMutex.Unlock()
 }
 
 func appendFile(localfilename string, HyDFSfilename string) {
@@ -208,7 +202,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
         wg.Add(1)
         go func(candidate string) {
             defer wg.Done()
-            response := checkappendFileToCandidate(conns[i], localfilename, HyDFSfilename)
+            response := checkAppendFileToCandidate(conns[i], localfilename, HyDFSfilename)
             responses <- response
         }(candidate)
     }
@@ -357,7 +351,7 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
 }
 
 
-func checkappendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename string) string{
+func checkAppendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename string) string{
     /*
     Check the server all reply "Success" to client
     If all sucess then start append
