@@ -427,12 +427,12 @@ func handleUpdate(conn net.Conn, filename string) {
 func handleSync(conn net.Conn, filename string) {
     filePath := LocalDir + filename
 
-    localFileMutex.Lock()
+    diskMutex.Lock()
     fileExists := true
-    if _, exists := localFile[filename]; !exists {
+    if _, err := os.Stat(filePath); os.IsNotExist(err) {
         fileExists = false
     }
-    localFileMutex.Unlock()
+    diskMutex.Unlock()
 
     // Send back response to inform sender whether the file exists
     if fileExists {
@@ -596,7 +596,6 @@ func syncFiles() {
             // If this node is not a replica, handle accordingly
             if !isReplica {
                 sendPrimaryReplica(filename, replicas[0])
-                delete(localFile, filename)
             }
         }
     }
@@ -800,4 +799,5 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     } else {
         fmt.Printf("No cached content to send for file %s\n", filename)
     }
+    delete(localFile, filename)
 }
