@@ -3,6 +3,7 @@ package global
 import (
     "encoding/json"
     "fmt"
+    "os"
     "hash/crc32"
     "net"
     "sort"
@@ -49,10 +50,10 @@ func GetMembership() map[string]NodeInfo {
     hostname, err := os.Hostname()
     if err != nil {
         fmt.Println("Error getting hostname:", err)
-        return
+        return nil
     }
 
-    conn, err := net.Dial("udp", hostname + SWIMPort)
+    conn, err := net.Dial("udp", hostname + ":" + SWIMPort)
     if err != nil {
         fmt.Println("Error dialing introducer:", err)
         return nil
