@@ -734,12 +734,12 @@ func syncReplicaFile(filename string, replica string) {
     if response == "File does not exist\n" {
         // Send file content on disk if it exists
         diskMutex.Lock()
+        defer diskMutex.Unlock()
         if _, err := os.Stat(filePath); err == nil {
             // File exists, read and return the content
             file, err := os.Open(filePath)
             if err != nil {
                 fmt.Println("Error opening file:", err)
-                diskMutex.Unlock()
                 return
             }
             defer file.Close()
@@ -752,7 +752,6 @@ func syncReplicaFile(filename string, replica string) {
                         break
                     }
                     fmt.Println("Error reading from file:", err)
-                    diskMutex.Unlock()
                     return
                 }
                 if n == 0 {
@@ -761,7 +760,6 @@ func syncReplicaFile(filename string, replica string) {
                 _, err = conn.Write(buffer[:n])
                 if err != nil {
                     fmt.Println("Error writing to connection:", err)
-                    diskMutex.Unlock()
                     return
                 }
             }
@@ -770,7 +768,6 @@ func syncReplicaFile(filename string, replica string) {
         } else {
             fmt.Printf("File %s does not exist on disk\n", filename)
         }
-        diskMutex.Unlock()
     }
 
     // Check if additional cached content exists for the file
@@ -845,12 +842,12 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
 
     // Open the file to read its content
     diskMutex.Lock()
+    defer diskMutex.Unlock()
     if _, err := os.Stat(filePath); err == nil {
         // File exists, read and return the content
         file, err := os.Open(filePath)
         if err != nil {
             fmt.Println("Error opening file:", err)
-            diskMutex.Unlock()
             return
         }
         defer file.Close()
@@ -863,7 +860,6 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
                     break
                 }
                 fmt.Println("Error reading from file:", err)
-                diskMutex.Unlock()
                 return
             }
             if n == 0 {
@@ -872,7 +868,6 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
             _, err = conn.Write(buffer[:n])
             if err != nil {
                 fmt.Println("Error writing to connection:", err)
-                diskMutex.Unlock()
                 return
             }
         }
@@ -890,7 +885,6 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
         fmt.Printf("File %s does not exist on disk\n", filename)
     }
 
-    diskMutex.Unlock()
 
 
     // Check if additional cached content exists for the file
