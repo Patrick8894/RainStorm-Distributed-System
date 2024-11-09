@@ -306,7 +306,7 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
     If the file exists, overwrite it.
     */
     // Connect to the server
-    conn, err := net.Dial("tcp", VMaddress + ":" + global.HDFSPort)
+    conn, err := net.Dial("tcp", VMaddress)
     if err != nil {
         fmt.Println("Error connecting to server:", err)
         return
