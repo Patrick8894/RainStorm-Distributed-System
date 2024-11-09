@@ -52,13 +52,14 @@ for i in "${!hosts[@]}"; do
         echo \"No process found on port \${PORT}.\"
     fi
 
+    cd $repo_dir
+    
     # Delete the mp3/data before starting the new server
-    rm -rf mp3/data
+    rm -rf ../data
 
     # Create the mp3/data directory
-    mkdir -p mp3/data
+    mkdir -p ../data
 
-    cd $repo_dir
     go build client.go
     go build server.go
     nohup ./server > ../../mp1/data/${log_files[$i]} 2>&1 &
