@@ -16,8 +16,8 @@ import (
 
 func main() {
 
-    // Ensure cache directory exists
-    os.MkdirAll("cache", os.ModePerm)
+    // // Ensure cache directory exists
+    // os.MkdirAll("cache", os.ModePerm)
 
     // Define the command-line arguments
     createCmd := flag.NewFlagSet("create", flag.ExitOnError)
@@ -162,8 +162,8 @@ func getFile(HyDFSfilename string, localfilename string) {
     // get the first candidate to get the file
     getFileFromReplica(candidates[0], HyDFSfilename, localfilename)
 
-    // save the file to the cache
-    cache.addToCache(HyDFSfilename, localfilename)
+    // save the local file content to the cache
+    cache.AddToCache(HyDFSfilename, localfilename)
 }
 
 func appendFile(localfilename string, HyDFSfilename string) {

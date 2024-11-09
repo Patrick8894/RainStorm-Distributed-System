@@ -23,7 +23,7 @@ var (
     CacheList      = list.New()
     MaxCacheSize   = 10 // Maximum number of files to cache
     CacheMutex     sync.Mutex
-    CacheDirectory = "cache/"
+    // CacheDirectory = "cache/"
 )
 
 // Cache management functions
@@ -42,16 +42,21 @@ func GetCacheEntry(filename string) *CacheEntry {
     }
 }
 
-func addToCache(filename string, data []byte, lastModified time.Time) {
+func AddToCache(filename string, localfilename string) {
     /*
     Add a new cache entry for the given filename.
     */
+    data, err := os.ReadFile(localfilename)
+    if err != nil {
+        fmt.Println("Error reading file:", err)
+        return
+    }
 
     // if the file is already in the cache, update the entry
     if elem, ok := Cache[filename]; ok {
         CacheList.MoveToFront(elem)
         elem.Value.(*CacheEntry).data = data
-        elem.Value.(*CacheEntry).lastModified = lastModified
+        elem.Value.(*CacheEntry).lastModified = time.Now()
     } else {
         // Check if the cache is full
         if CacheList.Len() >= MaxCacheSize {
@@ -59,8 +64,8 @@ func addToCache(filename string, data []byte, lastModified time.Time) {
             back := CacheList.Back()
             if back != nil {
                 // delete cache file from disk
-                CacheFilePath := CacheDirectory + back.Value.(*CacheEntry).filename
-                os.Remove(CacheFilePath)
+                // CacheFilePath := CacheDirectory + back.Value.(*CacheEntry).filename
+                // os.Remove(CacheFilePath)
 
                 CacheList.Remove(back)
                 delete(Cache, back.Value.(*CacheEntry).filename)
@@ -75,8 +80,8 @@ func addToCache(filename string, data []byte, lastModified time.Time) {
         Cache[filename] = elem
     }
     // Save cache entry to disk
-    CacheFilePath := CacheDirectory + filename
-    os.WriteFile(CacheFilePath, data, 0644)
+    // CacheFilePath := CacheDirectory + filename
+    // os.WriteFile(CacheFilePath, data, 0644)
 }
 
 func DeleteCacheEntry(filename string) {
@@ -87,8 +92,8 @@ func DeleteCacheEntry(filename string) {
         CacheList.Remove(elem)
         delete(Cache, filename)
         // Remove cache file from disk
-        CacheFilePath := CacheDirectory + filename
-        os.Remove(CacheFilePath)
+        // CacheFilePath := CacheDirectory + filename
+        // os.Remove(CacheFilePath)
     }
 }
 
