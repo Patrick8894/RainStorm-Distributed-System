@@ -15,6 +15,10 @@ type CacheEntry struct {
     Data         []byte
 }
 
+const (
+    CacheTime = 60 * time.Second
+)
+
 var (
     Cache          = make(map[string]*list.Element)
     CacheList      = list.New()
@@ -100,7 +104,7 @@ func CheckCacheValidity(CachedLastModified time.Time) bool {
     */
 
     // Compare current time and CachedLastModified time
-    if time.Since(CachedLastModified) < 5*time.Minute {
+    if time.Since(CachedLastModified) < CacheTime {
         return true
     } else {
         fmt.Println("Cached version is stale")
