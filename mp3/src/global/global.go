@@ -28,7 +28,7 @@ type NodeInfo struct {
 const (
     HDFSPort           = "8085"
     SWIMPort           = "8082"
-    RingMod            = 256
+    RingMod            = 1024
     ReplicationFactor  = 3
 )
 
