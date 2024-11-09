@@ -9,11 +9,16 @@ import (
     "io"
     "strings"
     "mp3/src/global"
+    "mp3/src/cache"
 )
 
 // IMPORTANT: For HyDFS commands, pass arguments with with format "command filename" in TCP
 
 func main() {
+
+    // Ensure cache directory exists
+    os.MkdirAll("cache", os.ModePerm)
+
     // Define the command-line arguments
     createCmd := flag.NewFlagSet("create", flag.ExitOnError)
     getCmd := flag.NewFlagSet("get", flag.ExitOnError)
@@ -101,10 +106,23 @@ func createFile(localfilename string, HyDFSfilename string) {
         return
     }
 
+
+    var wg sync.WaitGroup
     for _, candidate := range candidates {
+        wg.Add(1)
         // use go routine to send the file to the candidate
-        createFileToCandidate(candidate, localfilename, HyDFSfilename)
+        go func(candidate string){
+            defer wg.Done()
+            createFileToCandidate(candidate, localfilename, HyDFSfilename)
+        }(candidate)
     }
+
+    wg.Wait()
+
+    // delete the cache entry
+    cache.CacheMutex.Lock()
+    cache.DeleteCacheEntry(HyDFSfilename)
+    cache.CacheMutex.Unlock()
 
 }
 
@@ -114,6 +132,29 @@ func getFile(HyDFSfilename string, localfilename string) {
     save the file to the local machine.
     */
     // TODO: Implement the get functionality here
+
+    // First check if the file exists in the cache
+    cache.CacheMutex.Lock()
+    entry := cache.Cache[HyDFSfilename]
+    cache.CacheMutex.Unlock()
+
+    if entry != nil {
+        // Check if the cached file is up-to-date
+        if cache.CheckCacheValidity(HyDFSfilename, entry.Value.(*cache.CacheEntry).LastModified) {
+            // Cache is up-to-date, copy the file to the local machine
+            err := os.WriteFile(localfilename, entry.Value.(*cache.CacheEntry).Data, 0644)
+            if err != nil {
+                fmt.Println("Error writing to local file:", err)
+                return
+            }
+        } else {
+            // Cache is not up-to-date, delete the cache entry
+            cache.CacheMutex.Lock()
+            cache.DeleteCacheEntry(HyDFSfilename)
+            cache.CacheMutex.Unlock()
+        }
+    }
+        
 
     // get the candidate server to get the HyDFS file
     candidates := global.FindFileReplicas(HyDFSfilename)
@@ -125,6 +166,10 @@ func getFile(HyDFSfilename string, localfilename string) {
     // get the first candidate to get the file
     getFileFromReplica(candidates[0], HyDFSfilename, localfilename)
 
+    // save the file to the cache
+    cache.CacheMutex.Lock()
+    cache.addToCache(HyDFSfilename, localfilename)
+    cache.CacheMutex.Unlock()
 }
 
 func appendFile(localfilename string, HyDFSfilename string) {
@@ -181,7 +226,9 @@ func appendFile(localfilename string, HyDFSfilename string) {
         go appendFileToCandidate(conns[i], localfilename, HyDFSfilename)
     }
 
-
+    cache.CacheMutex.Lock()
+    cache.DeleteCacheEntry(HyDFSfilename)
+    cache.CacheMutex.Unlock()
 }
 
 
