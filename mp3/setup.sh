@@ -61,9 +61,7 @@ for i in "${!hosts[@]}"; do
     cd $repo_dir
     go build client.go
     go build server.go
-    nohup ./client > ../../mp1/data/${log_files[$i]} 2>&1 &
     nohup ./server > ../../mp1/data/${log_files[$i]} 2>&1 &
-    fi
   "
   echo "Done with $host"
 done
