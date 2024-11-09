@@ -200,7 +200,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
     for i, candidate := range candidates {
         // use go routine to send the file to the candidate
 
-        conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
+        conn, err := net.Dial("tcp", candidate)
         if err != nil {
             fmt.Println("Error connecting to server:", err)
             responses <- "Fail"
@@ -240,7 +240,7 @@ func createFileToCandidate(candidate string, localfilename string, HyDFSfilename
     /*
     Connect and Send the local file to the candidate server to create the HyDFS file.
     */
-    conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
+    conn, err := net.Dial("tcp", candidate)
     if err != nil {
         fmt.Println("Error connecting to server:", err)
         return
@@ -430,7 +430,7 @@ func mergeFile(HyDFSfilename string) {
     Merge the HyDFS file from all the replicas.
     */
     primaryReplica := global.FindFileReplicas(HyDFSfilename)[0]
-    conn, err := net.Dial("tcp", primaryReplica + ":" + global.HDFSPort)
+    conn, err := net.Dial("tcp", primaryReplica)
     if err != nil {
         fmt.Println("Error connecting to server:", err)
         return
