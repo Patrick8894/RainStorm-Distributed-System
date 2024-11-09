@@ -92,51 +92,16 @@ func DeleteCacheEntry(filename string) {
     }
 }
 
-func CheckCacheValidity(filename string, CachedLastModified time.Time) bool {
+func CheckCacheValidity(CachedLastModified time.Time) bool {
     /*
        Check with the server if the cached version is up-to-date.
     */
-    candidates := global.FindFileReplicas(filename)
-    if len(candidates) == 0 {
-        fmt.Println("No candidates found")
-        return false
-    }
 
-    // Connect to the server
-    conn, err := net.Dial("tcp", candidates[0]+":"+global.HDFSPort)
-    if err != nil {
-        fmt.Println("Error connecting to server:", err)
+    // Compare current time and CachedLastModified time
+    if time.Since(CachedLastModified) < 5*time.Minute {
+        return true
+    } else {
+        fmt.Println("Cached version is stale")
         return false
     }
-    defer conn.Close()
-
-    // Send the "stat" command with the filename
-    command := fmt.Sprintf("stat %s\n", filename)
-    _, err = conn.Write([]byte(command))
-    if err != nil {
-        fmt.Println("Error sending command:", err)
-        return false
-    }
-
-    // Read the last modified time from the server
-    buffer := make([]byte, 1024)
-    n, err := conn.Read(buffer)
-    if err != nil {
-        fmt.Println("Error reading from connection:", err)
-        return false
-    }
-    response := string(buffer[:n])
-    parts := strings.SplitN(response, " ", 2)
-    if len(parts) < 2 || parts[0] != "LastModified" {
-        fmt.Println("Unexpected response from server:", response)
-        return false
-    }
-    lastModifiedStr := strings.TrimSpace(parts[1])
-    lastModified, err := time.Parse(time.RFC3339, lastModifiedStr)
-    if err != nil {
-        fmt.Println("Error parsing last modified time:", err)
-        return false
-    }
-
-    return !lastModified.After(CachedLastModified)
 }

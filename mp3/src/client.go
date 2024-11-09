@@ -138,7 +138,7 @@ func getFile(HyDFSfilename string, localfilename string) {
 
     if entry != nil {
         // Check if the cached file is up-to-date
-        if cache.CheckCacheValidity(HyDFSfilename, entry.lastModified) {
+        if cache.CheckCacheValidity(entry.lastModified) {
             // Cache is up-to-date, copy the file to the local machine
             err := os.WriteFile(localfilename, entry.data, 0644)
             if err != nil {
