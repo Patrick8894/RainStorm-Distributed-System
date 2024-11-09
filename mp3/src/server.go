@@ -14,8 +14,9 @@ import (
 
 var LocalDir = "../data/"
 var SelfAddress string
-
+// localfile maps a filename to a list of replicas' ip e.x. localfile["file1"] = ["ip1", "ip2", "ip3"]
 var localFile = make(map[string][]string)
+// 
 var cachedFile = make(map[string][]byte)
 
 var localFileMutex sync.Mutex
@@ -23,6 +24,7 @@ var cachedFileMutex sync.Mutex
 var diskMutex sync.Mutex
 
 func main() {
+    // Before starting the server, delete all files in the local directory
     err := deleteAllFiles(LocalDir)
     if err != nil {
         fmt.Println("Error deleting files:", err)
@@ -147,6 +149,9 @@ func handleConnection(conn net.Conn) {
 }
 
 func handleCreate(conn net.Conn, filename string) {
+    /*
+    Create a new file with the given filename and write the content to it from Client.
+    */
     filePath := LocalDir + filename
 
     // Check if the file already exists

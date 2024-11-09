@@ -93,7 +93,7 @@ func createFile(localfilename string, HyDFSfilename string) {
     */
     // TODO: Implement the create functionality here
     // check if localfilename exists
-    _, err := os.Stat("data/"+localfilename)
+    _, err := os.Stat(localfilename)
     if err != nil {
         fmt.Println("Local file does not exist")
         return
@@ -170,7 +170,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
     // TODO: Implement the append functionality here
 
     // check if localfilename exists
-    _, err := os.Stat("data/"+localfilename)
+    _, err := os.Stat(localfilename)
     if err != nil {
         fmt.Println("Local file does not exist")
         return
@@ -194,6 +194,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
         conn, err := net.Dial("tcp", candidate + ":" + global.HDFSPort)
         if err != nil {
             fmt.Println("Error connecting to server:", err)
+            responses <- "Fail"
             continue
         }
         defer conn.Close()
