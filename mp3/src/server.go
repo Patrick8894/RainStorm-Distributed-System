@@ -722,6 +722,19 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     response := string(buffer[:n])
     if strings.HasPrefix(response, "Fail") {
         fmt.Println("Primary replica returned an error:", response)
+        diskMutex.Lock()
+        err = os.Remove(filePath)
+        if err != nil {
+            fmt.Println("Error deleting file:", err)
+        } else {
+            fmt.Printf("File %s deleted successfully\n", filename)
+        }
+        diskMutex.Unlock()
+        cachedFileMutex.Lock()
+        delete(cachedFile, filename)
+        cachedFileMutex.Unlock()
+        delete(localFile, filename)
+        
         return
     }
 
