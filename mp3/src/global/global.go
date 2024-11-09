@@ -46,7 +46,13 @@ func GetMembership() map[string]NodeInfo {
     /*
     Get the membership list from local SWIM protocol.
     */
-    conn, err := net.Dial("udp", "localhost:" + SWIMPort)
+    hostname, err := os.Hostname()
+    if err != nil {
+        fmt.Println("Error getting hostname:", err)
+        return
+    }
+
+    conn, err := net.Dial("udp", hostname + SWIMPort)
     if err != nil {
         fmt.Println("Error dialing introducer:", err)
         return nil
