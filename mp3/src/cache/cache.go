@@ -11,8 +11,8 @@ import (
 // CacheEntry represents a cache entry
 type CacheEntry struct {
     filename     string
-    lastModified time.Time
-    data         []byte
+    LastModified time.Time
+    Data         []byte
 }
 
 var (
@@ -52,8 +52,8 @@ func AddToCache(filename string, localfilename string) {
     // if the file is already in the cache, update the entry
     if elem, ok := Cache[filename]; ok {
         CacheList.MoveToFront(elem)
-        elem.Value.(*CacheEntry).data = data
-        elem.Value.(*CacheEntry).lastModified = time.Now()
+        elem.Value.(*CacheEntry).Data = data
+        elem.Value.(*CacheEntry).LastModified = time.Now()
     } else {
         // Check if the cache is full
         if CacheList.Len() >= MaxCacheSize {
@@ -70,8 +70,8 @@ func AddToCache(filename string, localfilename string) {
         }
         entry := &CacheEntry{
             filename:     filename,
-            data:         data,
-            lastModified: time.Now(),
+            Data:         data,
+            LastModified: time.Now(),
         }
         elem := CacheList.PushFront(entry)
         Cache[filename] = elem
