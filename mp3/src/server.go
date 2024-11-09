@@ -595,6 +595,7 @@ func updateMembershipList() {
     response := global.GetMembership()
 
     if mapsEqual(response, global.Cluster) {
+        localFileMutex.Unlock()
         return
     }
     global.Cluster = response
