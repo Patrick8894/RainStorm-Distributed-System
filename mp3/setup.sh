@@ -38,22 +38,11 @@ for i in "${!hosts[@]}"; do
     
     # SSH into each host, check for existing process, kill it if found, and run new commands
     ssh "$host" "
-    PORT=8082
+    PORT=8085
     PID=\$(lsof -t -i :\${PORT})
 
     
     # If a PID is found, kill the process
-    if [ ! -z \"\$PID\" ]; then
-        echo \"Stopping old server with PID \$PID...\"
-        kill \$PID
-        # If needed, force kill
-        # sudo kill -9 \$PID
-    else
-        echo \"No process found on port \${PORT}.\"
-    fi
-    
-    PORT2=8085
-    PID=\$(lsof -t -i :\${PORT2})
     if [ ! -z \"\$PID\" ]; then
         echo \"Stopping old server with PID \$PID...\"
         kill \$PID
