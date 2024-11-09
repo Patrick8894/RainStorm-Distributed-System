@@ -3,10 +3,7 @@ package cache
 import (
     "container/list"
     "fmt"
-    "mp3/src/global"
-    "net"
     "os"
-    "strings"
     "sync"
     "time"
 )
@@ -74,7 +71,7 @@ func AddToCache(filename string, localfilename string) {
         entry := &CacheEntry{
             filename:     filename,
             data:         data,
-            lastModified: lastModified,
+            lastModified: time.Now(),
         }
         elem := CacheList.PushFront(entry)
         Cache[filename] = elem
