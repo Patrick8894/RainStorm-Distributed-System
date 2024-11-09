@@ -16,6 +16,8 @@ import (
 
 func main() {
 
+    global.Cluster = global.GetMembership()
+
     // // Ensure cache directory exists
     // os.MkdirAll("cache", os.ModePerm)
 
@@ -416,23 +418,16 @@ func appendFileToCandidate(conn net.Conn, localfilename string, HyDFSfilename st
     }
 }
 
-
-
 func listMachine(HyDFSfilename string) {
     /*
     For Command "ls"
     list all the machine addresses that store the given HyDFS file.
     */
-    global.Cluster = global.GetMembership()
     replicas := global.FindFileReplicas(HyDFSfilename)
     for _, replica := range replicas {
-        fmt.Println(replica)
+        fmt.Println(getHost(replica))
     }
 }
-
-
-
-
 
 func listFiles() {
     conn, err := net.Dial("tcp", "localhost:" + global.HDFSPort)
@@ -468,8 +463,15 @@ func listFiles() {
 }
 
 func listMemberIds() {
-    global.Cluster = global.GetMembership()
     for _, node := range global.Cluster {
-        fmt.Println(node.Address, global.HashFunc(node.Address))
+        fmt.Println(getHost(node.Address), global.HashFunc(node.Address))
     }
+}
+
+func getHost(address string) string {
+    parts := strings.Split(address, ":")
+    if len(parts) > 1 {
+        return parts[0]
+    }
+    return address
 }
