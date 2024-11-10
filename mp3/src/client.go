@@ -330,7 +330,7 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
 
 
     // Check if the file exists
-    if _, err := os.Stat(localfilename); err == nil {
+    if _, err = os.Stat(localfilename); err == nil {
         // File exists, overwrite it
         os.Remove(localfilename)
     }
@@ -357,7 +357,7 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
 
 
     // Retrieve and save the file content
-    buffer := make([]byte, 1024)
+    buffer = make([]byte, 1024)
     for {
         n, err := conn.Read(buffer)
         if err != nil {
