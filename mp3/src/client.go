@@ -210,7 +210,7 @@ func appendFile(localfilename string, HyDFSfilename string) {
         conns[i] = conn
 
         wg.Add(1)
-        go func(candidate string, conn net.Conn){ {
+        go func(candidate string, conn net.Conn){ 
             defer wg.Done()
             response := checkAppendFileToCandidate(conn, localfilename, HyDFSfilename)
             responses <- response
