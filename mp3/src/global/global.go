@@ -88,6 +88,13 @@ func GetMembership() map[string]NodeInfo {
     return response
 }
 
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+
 func FindFileReplicas(filename string) []string {
     /*
     Given a filename, return the ip ddresses of the three replicas.
