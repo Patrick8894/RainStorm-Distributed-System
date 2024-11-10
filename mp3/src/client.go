@@ -84,7 +84,7 @@ func main() {
     case "getfromreplica":
         getFromReplicaCmd.Parse(os.Args[2:])
         fmt.Printf("Getting file %s from replica at %s and saving as %s\n", *getFromReplicaHyDFSFile, *getFromReplicaVM, *getFromReplicaLocalFile)
-        getFileFromReplica(*getFromReplicaVM + global.HDFSPort, *getFromReplicaHyDFSFile, *getFromReplicaLocalFile)
+        getFileFromReplica(*getFromReplicaVM + ":" + global.HDFSPort, *getFromReplicaHyDFSFile, *getFromReplicaLocalFile)
     case "list_mem_ids":
         listMemIdsCmd.Parse(os.Args[2:])
         fmt.Println("Listing all member IDs")
