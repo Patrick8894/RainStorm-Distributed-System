@@ -71,3 +71,7 @@ e. update the drop rate
 ```
 go run src/control.go --c drop --s 0.01 # update all nodes' drop rate
 ```
+f. list specific node's id
+```
+go run src/control.go --c lsi --s 1 # list node 1's id
+```
