@@ -650,7 +650,6 @@ func syncFiles() {
         
             // Check if additional cached content exists for the file
             cachedFileMutex.Lock()
-            defer cachedFileMutex.Unlock()
 
             if content, exists := cachedFile[filename]; exists {
 
@@ -687,6 +686,7 @@ func syncFiles() {
             } else {
                 fmt.Printf("No cached content to append for file %s\n", filename)
             }
+            cachedFileMutex.Unlock()
         } else {
             // Check if this node is a replica
             isReplica := false
