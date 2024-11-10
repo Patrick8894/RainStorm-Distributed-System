@@ -226,9 +226,16 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }
     }
 
+    var appendWg sync.WaitGroup
     for i := 0; i < len(candidates); i++ {
-        go appendFileToCandidate(conns[i], localfilename, HyDFSfilename)
+        appendWg.Add(1)
+        go func(conn net.Conn) {
+            defer appendWg.Done()
+            appendFileToCandidate(conn, localfilename, HyDFSfilename)
+        }(conns[i])
     }
+
+    appendWg.Wait()
 
     cache.CacheMutex.Lock()
     cache.DeleteCacheEntry(HyDFSfilename)
