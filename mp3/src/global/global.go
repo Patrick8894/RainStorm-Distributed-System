@@ -92,6 +92,8 @@ func FindFileReplicas(filename string) []string {
     /*
     Given a filename, return the ip ddresses of the three replicas.
     */
+    replicaCount = max(ReplicationFactor, len(Cluster))
+
     fileHash := HashFunc(filename)
     addressHashes := make([]int, 0, len(Cluster))
     addressMap := make(map[int]string)
@@ -107,11 +109,11 @@ func FindFileReplicas(filename string) []string {
     sort.Ints(addressHashes)
 
     // Find at most three replicas with hash values larger or equal to the file hash
-    replicas := make([]string, 0, ReplicationFactor)
+    replicas := make([]string, 0, replicaCount)
     for _, hash := range addressHashes {
         if hash >= fileHash {
             replicas = append(replicas, addressMap[hash])
-            if len(replicas) == ReplicationFactor {
+            if len(replicas) == replicaCount {
                 return replicas
             }
         }
@@ -120,7 +122,7 @@ func FindFileReplicas(filename string) []string {
     // If not enough replicas found, wrap around the ring
     for _, hash := range addressHashes {
         replicas = append(replicas, addressMap[hash])
-        if len(replicas) == ReplicationFactor {
+        if len(replicas) == replicaCount {
             break
         }
     }

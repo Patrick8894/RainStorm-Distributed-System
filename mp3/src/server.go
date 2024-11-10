@@ -639,12 +639,14 @@ func syncFiles() {
             //     continue
             // }
 
+            fmt.Printf("Primary replica for file %s\n", filename)
             for _, replica := range replicas[1:] {
                 syncReplicaFile(filename, replica)
             }
         
             // Append cached content to disk and delete the entry
             filePath := LocalDir + filename
+            fmt.Printf("Appending cached content for file %s to disk\n", filename)
         
             // Check if additional cached content exists for the file
             cachedFileMutex.Lock()
@@ -654,6 +656,7 @@ func syncFiles() {
 
                 diskMutex.Lock()
                 defer diskMutex.Unlock()
+                fmt.Printf("Appending cached content for file %s to disk\n")
                 // Open the file in append mode, create it if it does not exist
                 file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                 if err != nil {
