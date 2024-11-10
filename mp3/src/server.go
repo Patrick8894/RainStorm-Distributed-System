@@ -709,6 +709,7 @@ func syncReplicaFile(filename string, replica string) {
     /*
     Put the memory content to local disk
     */
+    fmt.Printf("Syncing file %s to replica %s\n", filename, replica)
     filePath := LocalDir + filename
 
     conn, err := net.Dial("tcp", replica)
@@ -736,7 +737,9 @@ func syncReplicaFile(filename string, replica string) {
 
     if response == "File does not exist\n" {
         // Send file content on disk if it exists
+        fmt.Println("attemp to get diskMutex")
         diskMutex.Lock()
+        fmt.Println("got diskMutex")
         defer diskMutex.Unlock()
         if _, err := os.Stat(filePath); err == nil {
             // File exists, read and return the content
@@ -774,7 +777,9 @@ func syncReplicaFile(filename string, replica string) {
     }
 
     // Check if additional cached content exists for the file
+    fmt.Println("attemp to get cachedFileMutex")
     cachedFileMutex.Lock()
+    fmt.Println("got cachedFileMutex")
     defer cachedFileMutex.Unlock()
     if content, exists := cachedFile[filename]; exists {
         // Send cached content in chunks
