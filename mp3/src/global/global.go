@@ -107,9 +107,10 @@ func FindFileReplicas(filename string) []string {
 
     // Compute the hash of all addresses in the cluster
     for _, node := range Cluster {
-        addressHash := HashFunc(node.Address)
+        newAddress := UpdateAddressPort(node.Address, HDFSPort)
+        addressHash := HashFunc(newAddress)
         addressHashes = append(addressHashes, addressHash)
-        addressMap[addressHash] = UpdateAddressPort(node.Address, HDFSPort)
+        addressMap[addressHash] = newAddress
     }
 
     // Sort the address hashes
@@ -145,4 +146,16 @@ func UpdateAddressPort(address, newPort string) string {
     }
     host := parts[0]
     return fmt.Sprintf("%s:%s", host, newPort)
+}
+
+func SortClusterByHash() []NodeInfo {
+    nodes := make([]NodeInfo, 0, len(Cluster))
+    for _, node := range Cluster {
+        nodes = append(nodes, node)
+    }
+    sort.Slice(nodes, func(i, j int) bool {
+        return HashFunc(UpdateAddressPort(nodes[i].Address, HDFSPort)) <
+               HashFunc(UpdateAddressPort(nodes[j].Address, HDFSPort))
+    })
+    return nodes
 }

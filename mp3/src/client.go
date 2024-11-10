@@ -477,7 +477,7 @@ func listMachine(HyDFSfilename string) {
     */
     replicas := global.FindFileReplicas(HyDFSfilename)
     for _, replica := range replicas {
-        fmt.Println(getHost(replica))
+        fmt.Println(getHost(replica), global.HashFunc(global.UpdateAddressPort(replica, global.HDFSPort)))
     }
 }
 
@@ -515,8 +515,9 @@ func listFiles() {
 }
 
 func listMemberIds() {
-    for _, node := range global.Cluster {
-        fmt.Println(getHost(node.Address), global.HashFunc(node.Address))
+    sortedCluster := global.SortClusterByHash()
+    for _, node := range sortedCluster {
+        fmt.Println(getHost(node.Address), global.HashFunc(global.UpdateAddressPort(node.Address, global.HDFSPort)))
     }
 }
 
