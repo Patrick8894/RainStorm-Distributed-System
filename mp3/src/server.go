@@ -658,6 +658,7 @@ func syncFiles() {
         // Check if this node is the primary replica
         if replicas[0] == SelfAddress {
 
+            startTime := time.Now()
             // if _, exists := localFile[filename]; !exists {
             //     fmt.Printf("File %s does not exist locally\n", filename)
             //     continue
@@ -711,6 +712,9 @@ func syncFiles() {
             //     fmt.Printf("No cached content to append for file %s\n", filename)
             }
             cachedFileMutex.Unlock()
+            
+            elapsedTime := time.Since(startTime) // End time
+            fmt.Printf("Time elapsed for processing file %s: %s\n", filename, elapsedTime)
         } else {
             // Check if this node is a replica
             isReplica := false

@@ -6,6 +6,7 @@ import (
     "os"
     "sync" 
     "net"
+    "time"
     "io"
     "strings"
     "mp3/src/global"
@@ -144,6 +145,9 @@ func getFile(HyDFSfilename string, localfilename string) {
 
     // First check if the file exists in the cache
     entry := cache.Cache[HyDFSfilename]
+
+    startTime := time.Now()
+    defer fmt.Printf("Time elapsed for getting file %s: %s\n", HyDFSfilename, time.Since(startTime))
 
     if entry != nil {
         // Check if the cached file is up-to-date
