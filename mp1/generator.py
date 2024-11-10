@@ -64,8 +64,8 @@ def generate_log_entry():
     return f'{ip} - - [{timestamp}] "{method} {url} HTTP/1.0" {status_code} {size} "{referrer}" "{user_agent}"'
 
 # Generate log file with 10 entries
-for i in range(10):
-    with open(f"data/test_vm{i+1}.log", "w") as log_file:
+for i in range(1):
+    with open(f"big.log", "w") as log_file:
         log_file.write(fixed_data() + "\n")
         for j in range(int(sys.argv[1])):
             log_file.write(generate_log_entry() + "\n")
