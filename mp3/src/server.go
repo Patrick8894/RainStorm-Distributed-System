@@ -330,9 +330,9 @@ func handleGet(conn net.Conn, filename string) {
             }
         }
 
-        fmt.Printf("File %s sent successfully from disk\n", filename)
-    } else {
-        fmt.Printf("File %s does not exist on disk\n", filename)
+        // fmt.Printf("File %s sent successfully from disk\n", filename)
+    // } else {
+        // fmt.Printf("File %s does not exist on disk\n", filename)
     }
     diskMutex.Unlock()
 
@@ -355,9 +355,9 @@ func handleGet(conn net.Conn, filename string) {
                 return
             }
         }
-        fmt.Printf("Cached content for file %s sent successfully\n", filename)
-    } else {
-        fmt.Printf("No cached content to send for file %s\n", filename)
+    //     fmt.Printf("Cached content for file %s sent successfully\n", filename)
+    // } else {
+    //     fmt.Printf("No cached content to send for file %s\n", filename)
     }
 }
 
@@ -425,12 +425,12 @@ func handleMerge(conn net.Conn, filename string) {
                 return
             }
         }
-        fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
+        // fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
 
         // Remove the entry from cachedFile
         delete(cachedFile, filename)
-    } else {
-        fmt.Printf("No cached content to append for file %s\n", filename)
+    // } else {
+    //     fmt.Printf("No cached content to append for file %s\n", filename)
     }
 }
 
@@ -516,7 +516,7 @@ func handleUpdate(conn net.Conn, filename string) {
         }
     }
 
-    fmt.Printf("File %s updated successfully\n", filename)
+    // fmt.Printf("File %s updated successfully\n", filename)
 }
 
 func handleSync(conn net.Conn, filename string) {
@@ -588,7 +588,7 @@ func handleSync(conn net.Conn, filename string) {
     delete(cachedFile, filename)
     cachedFileMutex.Unlock()
 
-    fmt.Printf("File %s synchronized and cached entry removed\n", filename)
+    // fmt.Printf("File %s synchronized and cached entry removed\n", filename)
 }
 
 func updateMembershipList() {
@@ -640,14 +640,14 @@ func syncFiles() {
             //     continue
             // }
 
-            fmt.Printf("Primary replica for file %s\n", filename)
+            // fmt.Printf("Primary replica for file %s\n", filename)
             for _, replica := range replicas[1:] {
                 syncReplicaFile(filename, replica)
             }
         
             // Append cached content to disk and delete the entry
             filePath := LocalDir + filename
-            fmt.Printf("Appending cached content for file %s to disk\n", filename)
+            // fmt.Printf("Appending cached content for file %s to disk\n", filename)
         
             // Check if additional cached content exists for the file
             cachedFileMutex.Lock()
@@ -656,7 +656,7 @@ func syncFiles() {
 
                 diskMutex.Lock()
                 defer diskMutex.Unlock()
-                fmt.Printf("Appending cached content for file %s to disk\n")
+                // fmt.Printf("Appending cached content for file %s to disk\n")
                 // Open the file in append mode, create it if it does not exist
                 file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                 if err != nil {
@@ -680,12 +680,12 @@ func syncFiles() {
                         return
                     }
                 }
-                fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
+                // fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
         
                 // Remove the entry from cachedFile
                 delete(cachedFile, filename)
-            } else {
-                fmt.Printf("No cached content to append for file %s\n", filename)
+            // } else {
+            //     fmt.Printf("No cached content to append for file %s\n", filename)
             }
             cachedFileMutex.Unlock()
         } else {
@@ -710,7 +710,7 @@ func syncReplicaFile(filename string, replica string) {
     /*
     Put the memory content to local disk
     */
-    fmt.Printf("Syncing file %s to replica %s\n", filename, replica)
+    // fmt.Printf("Syncing file %s to replica %s\n", filename, replica)
     filePath := LocalDir + filename
 
     conn, err := net.Dial("tcp", replica)
@@ -738,9 +738,7 @@ func syncReplicaFile(filename string, replica string) {
 
     if response == "File does not exist\n" {
         // Send file content on disk if it exists
-        fmt.Println("attemp to get diskMutex")
         diskMutex.Lock()
-        fmt.Println("got diskMutex")
         defer diskMutex.Unlock()
         if _, err := os.Stat(filePath); err == nil {
             // File exists, read and return the content
@@ -771,16 +769,16 @@ func syncReplicaFile(filename string, replica string) {
                 }
             }
 
-            fmt.Printf("File %s sent successfully from disk\n", filename)
-        } else {
-            fmt.Printf("File %s does not exist on disk\n", filename)
+        //     fmt.Printf("File %s sent successfully from disk\n", filename)
+        // } else {
+        //     fmt.Printf("File %s does not exist on disk\n", filename)
         }
     }
 
     // Check if additional cached content exists for the file
-    fmt.Println("attemp to get cachedFileMutex")
+    // fmt.Println("attemp to get cachedFileMutex")
     cachedFileMutex.Lock()
-    fmt.Println("got cachedFileMutex")
+    // fmt.Println("got cachedFileMutex")
     defer cachedFileMutex.Unlock()
     if content, exists := cachedFile[filename]; exists {
         // Send cached content in chunks
@@ -798,9 +796,9 @@ func syncReplicaFile(filename string, replica string) {
                 return
             }
         }
-        fmt.Printf("Cached content for file %s sent successfully\n", filename)
-    } else {
-        fmt.Printf("No cached content to send for file %s\n", filename)
+        // fmt.Printf("Cached content for file %s sent successfully\n", filename)
+    // } else {
+        // fmt.Printf("No cached content to send for file %s\n", filename)
     }
 }
 
@@ -832,13 +830,13 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     }
     response := string(buffer[:n])
     if strings.HasPrefix(response, "Fail") {
-        fmt.Println("Primary replica returned an error:", response)
+        // fmt.Println("Primary replica returned an error:", response)
         diskMutex.Lock()
         err = os.Remove(filePath)
         if err != nil {
             fmt.Println("Error deleting file:", err)
-        } else {
-            fmt.Printf("File %s deleted successfully\n", filename)
+        // } else {
+        //     fmt.Printf("File %s deleted successfully\n", filename)
         }
         diskMutex.Unlock()
         cachedFileMutex.Lock()
@@ -881,17 +879,17 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
             }
         }
 
-        fmt.Printf("File %s sent successfully from disk\n", filename)
+        // fmt.Printf("File %s sent successfully from disk\n", filename)
 
         // Delete the file before releasing the lock
         err = os.Remove(filePath)
         if err != nil {
             fmt.Println("Error deleting file:", err)
         } else {
-            fmt.Printf("File %s deleted successfully\n", filename)
+            // fmt.Printf("File %s deleted successfully\n", filename)
         }
-    } else {
-        fmt.Printf("File %s does not exist on disk\n", filename)
+    // } else {
+    //     fmt.Printf("File %s does not exist on disk\n", filename)
     }
 
 
@@ -915,9 +913,9 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
                 return
             }
         }
-        fmt.Printf("Cached content for file %s sent successfully\n", filename)
-    } else {
-        fmt.Printf("No cached content to send for file %s\n", filename)
+    //     fmt.Printf("Cached content for file %s sent successfully\n", filename)
+    // } else {
+    //     fmt.Printf("No cached content to send for file %s\n", filename)
     }
     delete(localFile, filename)
 }
