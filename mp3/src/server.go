@@ -235,7 +235,6 @@ func handleAppend(conn net.Conn, filename string) {
         localFileMutex.Unlock()
         return
     }
-    localFileMutex.Unlock()
 
     // File exists, ready to append
     _, err := conn.Write([]byte("Success: Ready to receive file content\n"))
@@ -265,6 +264,8 @@ func handleAppend(conn net.Conn, filename string) {
         // Append received data to the cached file content
         cachedFile[filename] = append(cachedFile[filename], buffer[:n]...)
     }
+
+    defer localFileMutex.Unlock()
 
     fmt.Printf("Received data for %s. Cached file size: %d bytes\n", filename, len(cachedFile[filename]))
 }
