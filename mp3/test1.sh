@@ -6,7 +6,7 @@ go run client.go create --localfilename ~/business/business_4.txt --HyDFSfilenam
 go run client.go create --localfilename ~/business/business_5.txt --HyDFSfilename business_5.txt
 
 sleep 5
-go run src/client.go get --localfilename ~/output.txt --HyDFSfilename business_1.txt
+go run client.go get --localfilename ~/output.txt --HyDFSfilename business_1.txt
 echo "Content of business_1.txt\n"
 more ~/output.txt
 echo "Comparing 1.txt with business_1.txt\n"
