@@ -507,13 +507,36 @@ func handleUpdate(conn net.Conn, filename string) {
             return
         }
         if n == 0 {
-            continue
+            break
         }
         _, err = file.Write(buffer[:n])
         if err != nil {
             fmt.Println("Error writing to file:", err)
             return
         }
+    }
+
+    _, err = conn.Write([]byte("ACK"))
+    if err != nil {
+        fmt.Println("Error writing to connection:", err)
+        return
+    }
+
+    cachedFileMutex.Lock()
+    defer cachedFileMutex.Unlock()
+    for {
+        n, err := conn.Read(buffer)
+        if err != nil {
+            if err == io.EOF {
+                break
+            }
+            fmt.Println("Error reading from connection:", err)
+            return
+        }
+        if n == 0 {
+            continue
+        }
+        cachedFile[filename] = append(cachedFile[filename], buffer[:n]...)
     }
 
     // fmt.Printf("File %s updated successfully\n", filename)
@@ -892,7 +915,17 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     //     fmt.Printf("File %s does not exist on disk\n", filename)
     }
 
-
+    ackBuffer := make([]byte, 1024)
+    n, err = conn.Read(ackBuffer)
+    if err != nil {
+        fmt.Println("Error reading ACK from connection:", err)
+        return
+    }
+    ack := string(ackBuffer[:n])
+    if ack != "ACK" {
+        fmt.Println("Did not receive expected ACK")
+        return
+    }
 
     // Check if additional cached content exists for the file
     cachedFileMutex.Lock()
@@ -916,6 +949,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     //     fmt.Printf("Cached content for file %s sent successfully\n", filename)
     // } else {
     //     fmt.Printf("No cached content to send for file %s\n", filename)
+        delete(cachedFile, filename)
     }
     delete(localFile, filename)
 }
