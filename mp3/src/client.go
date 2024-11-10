@@ -343,19 +343,6 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
     }
     defer localFile.Close()
 
-    buffer := make([]byte, 1024)
-    n, err := conn.Read(buffer)
-    if err != nil {
-        fmt.Println("Error reading from connection to check success or fail:", err)
-        return
-    }
-    response := string(buffer[:n])
-    if strings.HasPrefix(response, "Fail") {
-        fmt.Println("Error getting file:", response)
-        return
-    }
-
-
     // Retrieve and save the file content
     buffer := make([]byte, 1024)
     for {
