@@ -49,17 +49,17 @@ func main() {
 
     updateMembershipList()
 
-    // go func() {
-    //     for range membershipTicker.C {
-    //         updateMembershipList()
-    //     }
-    // }()
+    go func() {
+        for range membershipTicker.C {
+            updateMembershipList()
+        }
+    }()
 
-    // go func() {
-    //     for range fileTicker.C {
-    //         syncFiles()
-    //     }
-    // }()
+    go func() {
+        for range fileTicker.C {
+            syncFiles()
+        }
+    }()
 
     go startServer()
 
@@ -226,11 +226,11 @@ func handleAppend(conn net.Conn, filename string) {
     /*
     Append the content from Client to the local file with the given filename.
     */
-    fmt.Printf("attemp to get localFileMutex\n")
+    // fmt.Printf("attemp to get localFileMutex\n")
     localFileMutex.Lock()
-    fmt.Printf("got localFileMutex\n")
+    // fmt.Printf("got localFileMutex\n")
     defer localFileMutex.Unlock()
-    defer fmt.Printf("localFileMutex released\n")
+    // defer fmt.Printf("localFileMutex released\n")
 
     // Check if the file exists
     if _, exists := localFile[filename]; !exists {
@@ -251,17 +251,17 @@ func handleAppend(conn net.Conn, filename string) {
 
     // Receive the file content and append it to cached file
 
-    fmt.Printf("attemp to get cachedFileMutex\n")
+    // fmt.Printf("attemp to get cachedFileMutex\n")
     cachedFileMutex.Lock()
-    fmt.Printf("got cachedFileMutex\n")
+    // fmt.Printf("got cachedFileMutex\n")
     defer cachedFileMutex.Unlock()
-    defer fmt.Printf("cachedFileMutex released\n")
+    // defer fmt.Printf("cachedFileMutex released\n")
     buffer := make([]byte, 1024)
     for {
         n, err := conn.Read(buffer)
         if err != nil {
             if err == io.EOF {
-                break
+                continue
             }
             fmt.Println("Error reading from connection:", err)
             return
