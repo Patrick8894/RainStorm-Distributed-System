@@ -229,6 +229,7 @@ func handleAppend(conn net.Conn, filename string) {
     fmt.Printf("attemp to get localFileMutex")
     localFileMutex.Lock()
     defer localFileMutex.Unlock()
+    defer fmt.Printf("localFileMutex released\n")
 
     // Check if the file exists
     if _, exists := localFile[filename]; !exists {
@@ -252,6 +253,7 @@ func handleAppend(conn net.Conn, filename string) {
     fmt.Printf("attemp to get cachedFileMutex")
     cachedFileMutex.Lock()
     defer cachedFileMutex.Unlock()
+    defer fmt.Printf("cachedFileMutex released\n")
     buffer := make([]byte, 1024)
     for {
         n, err := conn.Read(buffer)
