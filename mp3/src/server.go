@@ -224,6 +224,7 @@ func handleAppend(conn net.Conn, filename string) {
     /*
     Append the content from Client to the local file with the given filename.
     */
+    fmt.Printf("attemp to get localFileMutex")
     localFileMutex.Lock()
     defer localFileMutex.Unlock()
 
@@ -246,6 +247,7 @@ func handleAppend(conn net.Conn, filename string) {
 
     // Receive the file content and append it to cached file
 
+    fmt.Printf("attemp to get cachedFileMutex")
     cachedFileMutex.Lock()
     defer cachedFileMutex.Unlock()
     buffer := make([]byte, 1024)
