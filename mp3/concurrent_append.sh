@@ -14,12 +14,6 @@ hosts=(
     "bohaowu2@fa24-cs425-6610.cs.illinois.edu"
 )
 
-# Check if the number of arguments is at least 3
-if [ "$#" -lt 3 ]; then
-    echo "Usage: $0 filename VM1 [VM2 ... VMN] localfile1 [localfile2 ... localfileN]"
-    exit 1
-fi
-
 machine_count=$1
 localfilename=$2
 HyDFSfilename=$3
