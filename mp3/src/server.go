@@ -61,7 +61,7 @@ func main() {
     //     }
     // }()
 
-    // go startServer()
+    go startServer()
 
     select {}
 }
