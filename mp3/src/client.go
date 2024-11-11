@@ -359,6 +359,12 @@ func getFileFromReplica(VMaddress string, HyDFSfilename string, localfilename st
         return
     }
 
+    _, err = conn.Write([]byte("Success: Ready to receive file content\n"))
+    if err != nil {
+        fmt.Println("Error writing to connection:", err)
+        return
+    }
+
 
     // Retrieve and save the file content
     buffer = make([]byte, 1024)

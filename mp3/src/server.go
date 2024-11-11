@@ -290,9 +290,21 @@ func handleGet(conn net.Conn, filename string) {
     localFileMutex.Unlock()
 
     // File exists, ready to append
-    _, err := conn.Write([]byte("Success: Ready to receive file content\n"))
+    _, err := conn.Write([]byte("Success: Ready to transmit file content\n"))
     if err != nil {
         fmt.Println("Error writing to connection:", err)
+        return
+    }
+
+    buffer := make([]byte, 1024)
+    n, err := conn.Read(buffer)
+    if err != nil {
+        fmt.Println("Error reading from connection to check success or fail:", err)
+        return
+    }
+    response := string(buffer[:n])
+    if strings.HasPrefix(response, "Fail") {
+        fmt.Println("Error getting file:", response)
         return
     }
 
@@ -308,7 +320,7 @@ func handleGet(conn net.Conn, filename string) {
         }
         defer file.Close()
 
-        buffer := make([]byte, 1024)
+        buffer = make([]byte, 1024)
         for {
             n, err := file.Read(buffer)
             if err != nil {
