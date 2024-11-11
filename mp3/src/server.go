@@ -267,7 +267,7 @@ func handleAppend(conn net.Conn, filename string) {
             return
         }
         if n == 0 {
-            continue
+            break
         }
 
         // Append received data to the cached file content
