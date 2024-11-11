@@ -18,7 +18,7 @@ localfilename=$2
 HyDFSfilename=$3
 
 # Calculate the outcome of 1000/machine_count
-iterations=$((1000 / machine_count))
+iterations=$((100 / machine_count))
 
 # Loop through each VM and local filename pair and run the client.go script in the background
 for (( i=0; i<machine_count; i++ )); do
