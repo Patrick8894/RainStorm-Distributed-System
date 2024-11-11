@@ -221,7 +221,9 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }(candidate, conn)
     }
 
+    fmt.Println("Waiting for all servers to respond for first check")
     wg.Wait()
+    fmt.Println("All servers responded for first check")
     close(responses)
     for response := range responses {
         if strings.HasPrefix(response, "Fail") {
@@ -239,7 +241,9 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }(conns[i])
     }
 
+    fmt.Println("Waiting for all servers to append")
     appendWg.Wait()
+    fmt.Println("All servers appended")
 
     cache.CacheMutex.Lock()
     cache.DeleteCacheEntry(HyDFSfilename)
