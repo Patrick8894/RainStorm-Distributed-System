@@ -162,7 +162,7 @@ func getFile(HyDFSfilename string, localfilename string) {
             // Cache is not up-to-date, delete the cache entry
             cache.DeleteCacheEntry(HyDFSfilename)
         }
-    }
+    }   
         
 
     // get the candidate server to get the HyDFS file
@@ -221,9 +221,9 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }(candidate, conn)
     }
 
-    fmt.Println("Waiting for all servers to respond for first check")
+    // fmt.Println("Waiting for all servers to respond for first check")
     wg.Wait()
-    fmt.Println("All servers responded for first check")
+    // fmt.Println("All servers responded for first check")
     close(responses)
     for response := range responses {
         if strings.HasPrefix(response, "Fail") {
@@ -241,9 +241,9 @@ func appendFile(localfilename string, HyDFSfilename string) {
         }(conns[i])
     }
 
-    fmt.Println("Waiting for all servers to append")
+    // fmt.Println("Waiting for all servers to append")
     appendWg.Wait()
-    fmt.Println("All servers appended")
+    // fmt.Println("All servers appended")
 
     cache.CacheMutex.Lock()
     cache.DeleteCacheEntry(HyDFSfilename)
