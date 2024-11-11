@@ -261,13 +261,13 @@ func handleAppend(conn net.Conn, filename string) {
         n, err := conn.Read(buffer)
         if err != nil {
             if err == io.EOF {
-                continue
+                break
             }
             fmt.Println("Error reading from connection:", err)
             return
         }
         if n == 0 {
-            break
+            continue
         }
 
         // Append received data to the cached file content
