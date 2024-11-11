@@ -226,8 +226,9 @@ func handleAppend(conn net.Conn, filename string) {
     /*
     Append the content from Client to the local file with the given filename.
     */
-    fmt.Printf("attemp to get localFileMutex")
+    fmt.Printf("attemp to get localFileMutex\n")
     localFileMutex.Lock()
+    fmt.Printf("got localFileMutex\n")
     defer localFileMutex.Unlock()
     defer fmt.Printf("localFileMutex released\n")
 
@@ -250,8 +251,9 @@ func handleAppend(conn net.Conn, filename string) {
 
     // Receive the file content and append it to cached file
 
-    fmt.Printf("attemp to get cachedFileMutex")
+    fmt.Printf("attemp to get cachedFileMutex\n")
     cachedFileMutex.Lock()
+    fmt.Printf("got cachedFileMutex\n")
     defer cachedFileMutex.Unlock()
     defer fmt.Printf("cachedFileMutex released\n")
     buffer := make([]byte, 1024)
@@ -702,7 +704,7 @@ func syncFiles() {
                 file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                 if err != nil {
                     fmt.Println("Error opening file:", err)
-                    cachedFileMutex.Lock()
+                    cachedFileMutex.Unlock()
                     return
                 }
                 defer file.Close()
@@ -719,7 +721,7 @@ func syncFiles() {
                     _, err := file.Write(content[start:end])
                     if err != nil {
                         fmt.Println("Error writing cached content to file:", err)
-                        cachedFileMutex.Lock()
+                        cachedFileMutex.Unlock()
                         return
                     }
                 }
