@@ -47,19 +47,21 @@ func main() {
     fileTicker := time.NewTicker(30 * time.Second)
     defer fileTicker.Stop()
 
-    go func() {
-        for range membershipTicker.C {
-            updateMembershipList()
-        }
-    }()
+    updateMembershipList()
 
-    go func() {
-        for range fileTicker.C {
-            syncFiles()
-        }
-    }()
+    // go func() {
+    //     for range membershipTicker.C {
+    //         updateMembershipList()
+    //     }
+    // }()
 
-    go startServer()
+    // go func() {
+    //     for range fileTicker.C {
+    //         syncFiles()
+    //     }
+    // }()
+
+    // go startServer()
 
     select {}
 }
