@@ -166,17 +166,18 @@ func handleCreate(conn net.Conn, filename string) {
     filePath := LocalDir + filename
 
     // Check if the file already exists
-    localFileMutex.Lock()
-    if _, exists := localFile[filename]; exists {
-        // File exists
-        _, err := conn.Write([]byte("Fail: File already exists\n"))
-        if err != nil {
-            fmt.Println("Error writing to connection:", err)
-        }
-        localFileMutex.Unlock()
-        return
-    }
-    localFileMutex.Unlock()
+    // overwrite the file if it already exists
+    // localFileMutex.Lock()
+    // if _, exists := localFile[filename]; exists {
+    //     // File exists
+    //     _, err := conn.Write([]byte("Fail: File already exists\n"))
+    //     if err != nil {
+    //         fmt.Println("Error writing to connection:", err)
+    //     }
+    //     localFileMutex.Unlock()
+    //     return
+    // }
+    // localFileMutex.Unlock()
 
     // File does not exist, create it
     _, err := conn.Write([]byte("Success: Ready to receive file content\n"))
