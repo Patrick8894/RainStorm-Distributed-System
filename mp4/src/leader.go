@@ -31,6 +31,7 @@ type Task struct {
 var SWIMPort = "8082"
 var port = 8090
 var workerPort = 8091
+// Map of address to list of tasks
 var addressTaskMap = make(map[string][]Task)
 var cluster map[string]string
 var clusterLock sync.Mutex
@@ -53,6 +54,7 @@ func main() {
 
 	cluster = getMembership()
 	
+    // Periodically update membership list
 	go updateMembershipPeriodically()
 
     buffer := make([]byte, 1024)
@@ -67,6 +69,7 @@ func main() {
         fmt.Println("Received message:", message)
 
         if strings.HasPrefix(message, "[Log]") {
+            // worker send ACK message
             handleLogMessage(message, clientAddr)
         } else {
             clusterLock.Lock()
