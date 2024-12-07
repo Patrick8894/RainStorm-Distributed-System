@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+    // Return the column 3 and 4 of the input (OBJECTID, Sign_Type)
     scanner := bufio.NewScanner(os.Stdin)
     scanner.Scan()
     input := scanner.Text()

@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+    // Count the number of words in the input
     scanner := bufio.NewScanner(os.Stdin)
     scanner.Scan()
     input := scanner.Text()

@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+    // Filter the stream if X is present
     if len(os.Args) != 2 {
         fmt.Println("Usage: go run program.go X")
         return
