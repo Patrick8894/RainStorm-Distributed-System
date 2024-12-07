@@ -8,4 +8,6 @@ control
 node
 server
 client
+worker
+leader
 mp3/data/*

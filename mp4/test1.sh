@@ -1,4 +1,6 @@
 cd src
 # <op1_exe> <op2_exe> <hydfs_src_file> <hydfs_dest_filename> <num_tasks> <X> <stateful>
-go run client.go app1_op1.go app1_op2.go Traffic_Sign1000.txt business_3.txt 1 1 stateful
-go run client.go app1_op1.go app1_op2.go Traffic_Sign1000.txt business_3.txt 1 1 stateful
+
+go run client.go app1_op1.go app1_op2.go Traffic_Signs_1000.txt test1_1.txt 3 "No Outlet" stateless
+go run client.go app2_op1.go app2_op2.go Traffic_Signs_1000.txt test2_2.txt 3 "Punched Telespar" stateful
+echo "All done"
