@@ -150,10 +150,12 @@ func getFile(HyDFSfilename string, localfilename string) {
     defer fmt.Printf("Time elapsed for getting file %s: %s\n", HyDFSfilename, time.Since(startTime))
 
     if entry != nil {
+        fmt.Printf("Cache hit for file %s\n", HyDFSfilename)
         // Check if the cached file is up-to-date
         if cache.CheckCacheValidity(entry.Value.(*cache.CacheEntry).LastModified) { 
             // Cache is up-to-date, copy the file to the local machine
             err := os.WriteFile(localfilename, entry.Value.(*cache.CacheEntry).Data, 0644)
+            // fmt.Printf("Cache hit for file %s\n", HyDFSfilename)
             if err != nil {
                 fmt.Println("Error writing to local file:", err)
                 return

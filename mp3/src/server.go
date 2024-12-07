@@ -187,10 +187,11 @@ func handleCreate(conn net.Conn, filename string) {
 
     // Receive the file content and write it to the file
     diskMutex.Lock()
-    defer diskMutex.Unlock()
+    // defer diskMutex.Unlock()
     file, err := os.Create(filePath)
     if err != nil {
         fmt.Println("Error creating file:", err)
+        diskMutex.Unlock()
         return
     }
     defer file.Close()
@@ -203,6 +204,7 @@ func handleCreate(conn net.Conn, filename string) {
                 break
             }
             fmt.Println("Error reading from connection:", err)
+            diskMutex.Unlock()
             return
         }
         if n == 0 {
@@ -211,9 +213,11 @@ func handleCreate(conn net.Conn, filename string) {
         _, err = file.Write(buffer[:n])
         if err != nil {
             fmt.Println("Error writing to file:", err)
+            diskMutex.Unlock()
             return
         }
     }
+    diskMutex.Unlock()
 
     localFileMutex.Lock()
     localFile[filename] = global.FindFileReplicas(filename)
@@ -229,7 +233,7 @@ func handleAppend(conn net.Conn, filename string) {
     // fmt.Printf("attemp to get localFileMutex\n")
     localFileMutex.Lock()
     // fmt.Printf("got localFileMutex\n")
-    defer localFileMutex.Unlock()
+    // defer localFileMutex.Unlock()
     // defer fmt.Printf("localFileMutex released\n")
 
     // Check if the file exists
@@ -239,8 +243,10 @@ func handleAppend(conn net.Conn, filename string) {
         if err != nil {
             fmt.Println("Error writing to connection:", err)
         }
+        localFileMutex.Unlock()
         return
     }
+    localFileMutex.Unlock()
 
     // File exists, ready to append
     _, err := conn.Write([]byte("Success: Ready to receive file content\n"))
@@ -254,7 +260,7 @@ func handleAppend(conn net.Conn, filename string) {
     // fmt.Printf("attemp to get cachedFileMutex\n")
     cachedFileMutex.Lock()
     // fmt.Printf("got cachedFileMutex\n")
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
     // defer fmt.Printf("cachedFileMutex released\n")
     buffer := make([]byte, 1024)
     for {
@@ -264,6 +270,7 @@ func handleAppend(conn net.Conn, filename string) {
                 break
             }
             fmt.Println("Error reading from connection:", err)
+            cachedFileMutex.Unlock()
             return
         }
         if n == 0 {
@@ -273,7 +280,7 @@ func handleAppend(conn net.Conn, filename string) {
         // Append received data to the cached file content
         cachedFile[filename] = append(cachedFile[filename], buffer[:n]...)
     }
-
+    cachedFileMutex.Unlock()
     fmt.Printf("Received data for %s. Cached file size: %d bytes\n", filename, len(cachedFile[filename]))
 }
 
@@ -357,7 +364,7 @@ func handleGet(conn net.Conn, filename string) {
 
     // Check if additional cached content exists for the file
     cachedFileMutex.Lock()
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
     if content, exists := cachedFile[filename]; exists {
         // Send cached content in chunks
         bufferSize := 1024
@@ -371,6 +378,7 @@ func handleGet(conn net.Conn, filename string) {
             _, err := conn.Write(content[start:end])
             if err != nil {
                 fmt.Println("Error writing cached content to connection:", err)
+                cachedFileMutex.Unlock()
                 return
             }
         }
@@ -378,11 +386,12 @@ func handleGet(conn net.Conn, filename string) {
     // } else {
     //     fmt.Printf("No cached content to send for file %s\n", filename)
     }
+    cachedFileMutex.Unlock()
 }
 
 func handleMerge(conn net.Conn, filename string) {
     localFileMutex.Lock()
-    defer localFileMutex.Unlock()
+    // defer localFileMutex.Unlock()
     // Check if the file exists
     if _, exists := localFile[filename]; !exists {
         // File does not exist
@@ -390,10 +399,12 @@ func handleMerge(conn net.Conn, filename string) {
         if err != nil {
             fmt.Println("Error writing to connection:", err)
         }
+        localFileMutex.Unlock()
         return
     }
 
     replicas := localFile[filename]
+    localFileMutex.Unlock()
 
     // Check if this node is the primary replica
     if replicas[0] != SelfAddress {
@@ -415,19 +426,21 @@ func handleMerge(conn net.Conn, filename string) {
 
     // Check if additional cached content exists for the file
     cachedFileMutex.Lock()
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
 
     if content, exists := cachedFile[filename]; exists {
 
         diskMutex.Lock()
-        defer diskMutex.Unlock()
+        // defer diskMutex.Unlock()
         // Open the file in append mode, create it if it does not exist
         file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
         if err != nil {
             fmt.Println("Error opening file:", err)
+            diskMutex.Unlock()
+            cachedFileMutex.Unlock()
             return
         }
-        defer file.Close()
+        // defer file.Close()
 
         // Append cached content to the file
         bufferSize := 1024
@@ -441,16 +454,21 @@ func handleMerge(conn net.Conn, filename string) {
             _, err := file.Write(content[start:end])
             if err != nil {
                 fmt.Println("Error writing cached content to file:", err)
+                file.Close()
+                diskMutex.Unlock()
+                cachedFileMutex.Unlock()
                 return
             }
         }
         // fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
-
+        file.Close()
         // Remove the entry from cachedFile
         delete(cachedFile, filename)
     // } else {
     //     fmt.Printf("No cached content to append for file %s\n", filename)
+        diskMutex.Unlock()
     }
+    cachedFileMutex.Unlock()
 }
 
 func handleList(conn net.Conn) {
@@ -459,7 +477,7 @@ func handleList(conn net.Conn) {
     Search the local directory and send the list of files to the Client.
     */
     localFileMutex.Lock()
-    defer localFileMutex.Unlock()
+    // defer localFileMutex.Unlock()
 
     var files []string
     for file, _ := range localFile {
@@ -470,8 +488,10 @@ func handleList(conn net.Conn) {
     _, err := conn.Write([]byte(response))
     if err != nil {
         fmt.Println("Error writing to connection:", err)
+        localFileMutex.Unlock()
         return
     }
+    localFileMutex.Unlock()
 }
 
 
@@ -505,7 +525,7 @@ func handleUpdate(conn net.Conn, filename string) {
 
     // Receive the file content and write it to the file
     diskMutex.Lock()
-    defer diskMutex.Unlock()
+    // defer diskMutex.Unlock()
 
     file, err := os.Create(filePath)
     if err != nil {
@@ -513,7 +533,7 @@ func handleUpdate(conn net.Conn, filename string) {
         diskMutex.Unlock()
         return
     }
-    defer file.Close()
+    // defer file.Close()
 
     buffer := make([]byte, 1024)
     for {
@@ -523,6 +543,8 @@ func handleUpdate(conn net.Conn, filename string) {
                 break
             }
             fmt.Println("Error reading from connection:", err)
+            file.Close()
+            diskMutex.Unlock()
             return
         }
         if n == 0 {
@@ -531,9 +553,14 @@ func handleUpdate(conn net.Conn, filename string) {
         _, err = file.Write(buffer[:n])
         if err != nil {
             fmt.Println("Error writing to file:", err)
+            file.Close()
+            diskMutex.Unlock()
             return
         }
     }
+
+    file.Close()
+    diskMutex.Unlock()
 
     _, err = conn.Write([]byte("ACK"))
     if err != nil {
@@ -542,7 +569,7 @@ func handleUpdate(conn net.Conn, filename string) {
     }
 
     cachedFileMutex.Lock()
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
     for {
         n, err := conn.Read(buffer)
         if err != nil {
@@ -550,6 +577,7 @@ func handleUpdate(conn net.Conn, filename string) {
                 break
             }
             fmt.Println("Error reading from connection:", err)
+            cachedFileMutex.Unlock()
             return
         }
         if n == 0 {
@@ -557,7 +585,7 @@ func handleUpdate(conn net.Conn, filename string) {
         }
         cachedFile[filename] = append(cachedFile[filename], buffer[:n]...)
     }
-
+    cachedFileMutex.Unlock()
     // fmt.Printf("File %s updated successfully\n", filename)
 }
 
@@ -595,14 +623,15 @@ func handleSync(conn net.Conn, filename string) {
 
     // Open the file in append mode, create it if it does not exist
     diskMutex.Lock()
-    defer diskMutex.Unlock()
+    // defer diskMutex.Unlock()
     
     file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
     if err != nil {
         fmt.Println("Error opening file:", err)
+        diskMutex.Unlock()
         return
     }
-    defer file.Close()
+    // defer file.Close()
 
     // Receive the file content and append it to the file
     buffer := make([]byte, 1024)
@@ -613,6 +642,8 @@ func handleSync(conn net.Conn, filename string) {
                 break
             }
             fmt.Println("Error reading from connection:", err)
+            file.Close()
+            diskMutex.Unlock()
             return
         }
         if n == 0 {
@@ -621,9 +652,13 @@ func handleSync(conn net.Conn, filename string) {
         _, err = file.Write(buffer[:n])
         if err != nil {
             fmt.Println("Error writing to file:", err)
+            file.Close()
+            diskMutex.Unlock()
             return
         }
     }
+    file.Close()
+    diskMutex.Unlock()
 
     // Remove the entry from cachedFile
     cachedFileMutex.Lock()
@@ -667,9 +702,14 @@ func syncFiles() {
     Primary node sync the file content to the replica node.
     */
     localFileMutex.Lock()
-    defer localFileMutex.Unlock()
-
+    // defer localFileMutex.Unlock()
+    fileMapCopy := make(map[string][]string, len(localFile))
     for filename, replicas := range localFile {
+        fileMapCopy[filename] = append([]string{}, replicas...)
+    }
+    localFileMutex.Unlock()
+
+    for filename, replicas := range fileMapCopy {
         if len(replicas) == 0 {
             continue
         }
@@ -698,16 +738,17 @@ func syncFiles() {
             if content, exists := cachedFile[filename]; exists {
 
                 diskMutex.Lock()
-                defer diskMutex.Unlock()
+                // defer diskMutex.Unlock()
                 // fmt.Printf("Appending cached content for file %s to disk\n")
                 // Open the file in append mode, create it if it does not exist
                 file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                 if err != nil {
                     fmt.Println("Error opening file:", err)
+                    diskMutex.Unlock()
                     cachedFileMutex.Unlock()
                     return
                 }
-                defer file.Close()
+                // defer file.Close()
 
                 // Append cached content to the file
                 bufferSize := 1024
@@ -721,14 +762,17 @@ func syncFiles() {
                     _, err := file.Write(content[start:end])
                     if err != nil {
                         fmt.Println("Error writing cached content to file:", err)
+                        file.Close()
+                        diskMutex.Unlock()
                         cachedFileMutex.Unlock()
                         return
                     }
                 }
                 // fmt.Printf("Cached content for file %s appended to disk successfully\n", filename)
-        
+                file.Close()
                 // Remove the entry from cachedFile
                 delete(cachedFile, filename)
+                diskMutex.Unlock()
             // } else {
             //     fmt.Printf("No cached content to append for file %s\n", filename)
             }
@@ -787,12 +831,13 @@ func syncReplicaFile(filename string, replica string) {
     if response == "File does not exist\n" {
         // Send file content on disk if it exists
         diskMutex.Lock()
-        defer diskMutex.Unlock()
+        // defer diskMutex.Unlock()
         if _, err := os.Stat(filePath); err == nil {
             // File exists, read and return the content
             file, err := os.Open(filePath)
             if err != nil {
                 fmt.Println("Error opening file:", err)
+                diskMutex.Unlock()
                 return
             }
             defer file.Close()
@@ -805,6 +850,7 @@ func syncReplicaFile(filename string, replica string) {
                         break
                     }
                     fmt.Println("Error reading from file:", err)
+                    diskMutex.Unlock()
                     return
                 }
                 if n == 0 {
@@ -813,21 +859,23 @@ func syncReplicaFile(filename string, replica string) {
                 _, err = conn.Write(buffer[:n])
                 if err != nil {
                     fmt.Println("Error writing to connection:", err)
+                    diskMutex.Unlock()
                     return
                 }
             }
-
         //     fmt.Printf("File %s sent successfully from disk\n", filename)
         // } else {
         //     fmt.Printf("File %s does not exist on disk\n", filename)
         }
+        diskMutex.Unlock()
+
     }
 
     // Check if additional cached content exists for the file
     // fmt.Println("attemp to get cachedFileMutex")
     cachedFileMutex.Lock()
     // fmt.Println("got cachedFileMutex")
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
     if content, exists := cachedFile[filename]; exists {
         // Send cached content in chunks
         bufferSize := 1024
@@ -841,6 +889,7 @@ func syncReplicaFile(filename string, replica string) {
             _, err := conn.Write(content[start:end])
             if err != nil {
                 fmt.Println("Error writing cached content to connection:", err)
+                cachedFileMutex.Unlock()
                 return
             }
         }
@@ -848,6 +897,7 @@ func syncReplicaFile(filename string, replica string) {
     // } else {
         // fmt.Printf("No cached content to send for file %s\n", filename)
     }
+    cachedFileMutex.Unlock()
 }
 
 // SendPrimaryReplica sends the file content to the primary replica before deleting the file
@@ -879,6 +929,15 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     response := string(buffer[:n])
     if strings.HasPrefix(response, "Fail") {
         // fmt.Println("Primary replica returned an error:", response)
+        localFileMutex.Lock()
+        delete(localFile, filename)
+        localFileMutex.Unlock()
+
+    
+        cachedFileMutex.Lock()
+        delete(cachedFile, filename)
+        cachedFileMutex.Unlock()
+
         diskMutex.Lock()
         err = os.Remove(filePath)
         if err != nil {
@@ -887,22 +946,19 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
         //     fmt.Printf("File %s deleted successfully\n", filename)
         }
         diskMutex.Unlock()
-        cachedFileMutex.Lock()
-        delete(cachedFile, filename)
-        cachedFileMutex.Unlock()
-        delete(localFile, filename)
 
         return
     }
 
     // Open the file to read its content
     diskMutex.Lock()
-    defer diskMutex.Unlock()
+    // defer diskMutex.Unlock()
     if _, err := os.Stat(filePath); err == nil {
         // File exists, read and return the content
         file, err := os.Open(filePath)
         if err != nil {
             fmt.Println("Error opening file:", err)
+            diskMutex.Unlock()
             return
         }
         defer file.Close()
@@ -915,6 +971,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
                     break
                 }
                 fmt.Println("Error reading from file:", err)
+                diskMutex.Unlock()
                 return
             }
             if n == 0 {
@@ -923,6 +980,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
             _, err = conn.Write(buffer[:n])
             if err != nil {
                 fmt.Println("Error writing to connection:", err)
+                diskMutex.Unlock()
                 return
             }
         }
@@ -939,6 +997,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     // } else {
     //     fmt.Printf("File %s does not exist on disk\n", filename)
     }
+    diskMutex.Unlock()
 
     ackBuffer := make([]byte, 1024)
     n, err = conn.Read(ackBuffer)
@@ -954,7 +1013,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
 
     // Check if additional cached content exists for the file
     cachedFileMutex.Lock()
-    defer cachedFileMutex.Unlock()
+    // defer cachedFileMutex.Unlock()
     if content, exists := cachedFile[filename]; exists {
         // Send cached content in chunks
         bufferSize := 1024
@@ -968,6 +1027,7 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
             _, err := conn.Write(content[start:end])
             if err != nil {
                 fmt.Println("Error writing cached content to connection:", err)
+                cachedFileMutex.Unlock()
                 return
             }
         }
@@ -976,5 +1036,9 @@ func sendPrimaryReplica(filename string, primaryReplica string) {
     //     fmt.Printf("No cached content to send for file %s\n", filename)
         delete(cachedFile, filename)
     }
+    cachedFileMutex.Unlock()
+
+    localFileMutex.Lock()
     delete(localFile, filename)
+    localFileMutex.Unlock()
 }
