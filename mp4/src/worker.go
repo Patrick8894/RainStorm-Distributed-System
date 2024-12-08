@@ -62,7 +62,7 @@ func main() {
 		
         var response string
         if port != "" {
-            response = fmt.Sprintf("Success, port=%s", port)
+            response = fmt.Sprintf("Success: port=%s", port)
         } else {
             response = "Failure: Unable to process request"
         }
