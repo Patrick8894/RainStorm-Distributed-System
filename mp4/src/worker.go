@@ -618,6 +618,8 @@ func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 			nextStageIndex := int(hashValue[0]) % len(nextStageAddrMap[ID])
 			nextStage := nextStageAddrMap[ID][nextStageIndex]
 
+			fmt.Printf("Resending line %s to next stage %s\n", line, nextStage)
+
 			nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStage)
 			if err != nil {
 				fmt.Printf("Error resolving UDP address: %v\n", err)
