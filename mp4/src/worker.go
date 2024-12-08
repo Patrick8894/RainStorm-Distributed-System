@@ -439,6 +439,7 @@ func startTaskServerStage2(port int, params []string) {
         fmt.Printf("Received message: %s\n", request)
 
 		if strings.HasPrefix(request, "END_OF_TASK") {
+			fmt.Printf("Received end of task message\n")
 			endOfTask = true
 			nextStageAddrMutex.Lock()
 			if len(ackMap) == 0 {
@@ -535,15 +536,7 @@ func startTaskServerStage2(port int, params []string) {
         fmt.Printf("Sent ack to previus stage: %s\n", clientAddr)
 	}
 
-	for {
-		nextStageAddrMutex.Lock()
-		if len(ackMap) == 0 {
-			nextStageAddrMutex.Unlock()
-			break
-		}
-		nextStageAddrMutex.Unlock()
-		time.Sleep(1 * time.Second)
-	}
+	fmt.Printf("All data sent\n")
 
 	// Send end of task message to all next stages
 	endMessage := fmt.Sprintf("END_OF_TASK %s", taskNo)
