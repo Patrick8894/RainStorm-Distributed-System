@@ -436,7 +436,7 @@ func startTaskServerStage2(port int, params []string) {
         }
 
         request := string(buffer[:n])
-        fmt.Printf("Received request: %s\n", request)
+        fmt.Printf("Received message: %s\n", request)
 
 		if strings.HasPrefix(request, "END_OF_TASK") {
 			endOfTask = true
@@ -458,6 +458,8 @@ func startTaskServerStage2(port int, params []string) {
 				nextStageAddrMutex.Unlock()
 			}
 		}
+
+		fmt.Printf("Processing request: %s\n", request)
 
 		if _, exists := processInput[request]; exists {
 			conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
