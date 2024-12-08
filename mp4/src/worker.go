@@ -891,7 +891,7 @@ func startTaskServerStage3(port int, params []string) {
 	}
 
 	for key, value := range state {
-		_, err = file.WriteString(fmt.Sprintf("%s\n%d\n", key, value))
+		_, err = file.WriteString(fmt.Sprintf("%s %d\n", key, value))
 		if err != nil {
 			fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
 			return

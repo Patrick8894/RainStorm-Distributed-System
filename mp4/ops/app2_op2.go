@@ -16,7 +16,7 @@ func main() {
 	// the delimiter might be changed
     words := strings.Split(input, "\x00")
     if len(words) >= 9 {
-        fmt.Printf("%s\n", strings.TrimSpace(words[8]))
+        fmt.Printf("%s", strings.TrimSpace(words[8]))
     } else {
         fmt.Println("Input does not contain enough words.")
     }
