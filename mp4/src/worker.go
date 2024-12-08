@@ -175,6 +175,7 @@ func startTaskServerStage1(port int, params []string) {
     for i := start; i < end; i++ {
 		line := lines[i]
 		fmt.Printf("line", line, "\n")
+		fmt.Printf(nextStageAddrMap[ID][0], "\n")
 		nextStageAddrMutex.Lock()
 		conn, err := net.Dial("udp", nextStageAddrMap[ID][0])
 		if err != nil {
