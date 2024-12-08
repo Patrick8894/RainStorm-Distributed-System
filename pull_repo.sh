@@ -5,7 +5,6 @@
 hosts=(
   "bohaowu2@fa24-cs425-6601.cs.illinois.edu"
   "bohaowu2@fa24-cs425-6602.cs.illinois.edu"
-  "bohaowu2@fa24-cs425-6603.cs.illinois.edu"
   "bohaowu2@fa24-cs425-6604.cs.illinois.edu"
   "bohaowu2@fa24-cs425-6605.cs.illinois.edu"
   "bohaowu2@fa24-cs425-6606.cs.illinois.edu"

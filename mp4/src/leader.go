@@ -325,6 +325,8 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr) {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
 		return
 	}
+
+    fmt.Printf("create log file\n")
 	
 	log.WriteString(fmt.Sprintf("Task completed: stage=%d, index=%d\n", stage, index))
 	log.Close()
@@ -435,7 +437,7 @@ func processClientRequest(message string) {
 
 func scheduleTask(message string, stage int, index int, recover bool) string {
     fmt.Printf("Scheduling task: stage=%d, index=%d\n", stage, index)
-    
+
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
