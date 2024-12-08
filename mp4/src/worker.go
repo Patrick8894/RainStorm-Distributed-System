@@ -195,7 +195,7 @@ func startTaskServerStage1(port int, params []string) {
 			continue
 		}
 
-		_, err = conn.WriteToUDP([]byte(line), nextStageUdpAddr)
+		_, err = conn.WriteToUDP([]byte("ACK@" + line), nextStageUdpAddr)
 		if err != nil {
 			fmt.Printf("Error sending line to next stage %s: %v\n", nextStage, err)
 			nextStageAddrMutex.Unlock()
