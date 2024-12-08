@@ -123,8 +123,6 @@ func startTaskServerStage1(port int, params []string) {
     totalNumstr := strings.TrimSpace(params[2])
     nextStage := strings.TrimSpace(params[3])
 
-	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", port))
-
 	totalNum, err := strconv.Atoi(totalNumstr)
 
 	ID := fmt.Sprintf("1 %s", taskNo)
@@ -151,9 +149,19 @@ func startTaskServerStage1(port int, params []string) {
 
 	ackMap := make(map[string]int)
 
-    go handleStage1Acks(ID, ackMap, localAddr)
+	// setup a listen udp connection
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{
+		Port: port,
+		IP:   net.ParseIP("0.0.0.0"),
+	})
+	defer conn.Close()
 
-	go handleStage1resend(ID, ackMap, localAddr)
+	timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
+	conn.SetReadDeadline(time.Now().Add(timeoutDuration))
+
+    go handleStage1Acks(ID, ackMap, conn)
+
+	go handleStage1resend(ID, ackMap, conn)
 
     scanner := bufio.NewScanner(file)
 	if err := scanner.Err(); err != nil {
@@ -190,14 +198,7 @@ func startTaskServerStage1(port int, params []string) {
 			continue
 		}
 
-		conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
-			nextStageAddrMutex.Unlock()
-			i--
-			continue
-		}
-		_, err = conn.Write([]byte(line))
+		_, err = conn.WriteToUDP([]byte(line), nextStageUdpAddr)
 		if err != nil {
 			fmt.Printf("Error sending line to next stage %s: %v\n", nextStage, err)
 			nextStageAddrMutex.Unlock()
@@ -231,56 +232,26 @@ func startTaskServerStage1(port int, params []string) {
 		return
 	}
 
-	conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-	if err != nil {
-		fmt.Printf("Error connecting to next stage %s: %v\n", nextStageAddrMap[ID], err)
-		return
-	}
-    _, err = conn.Write([]byte(endMessage))
+    _, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
     if err != nil {
         fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID], err)
         return
     }
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
-    logConn, err := net.Dial("udp", leaderAddr)
-    if err != nil {
-        fmt.Printf("Error connecting to leader %s: %v\n", leaderAddr, err)
-        return
-    }
-    defer logConn.Close()
 
 	logMessage := fmt.Sprintf("[Log] 1 %s", taskNo)
-    _, err = logConn.Write([]byte(logMessage))
+    _, err = conn.WriteToUDP([]byte(logMessage), nextStageUdpAddr)
     if err != nil {
         fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
     }
+	nextStageAddrMutex.Unlock()
 }
 
-func handleStage1Acks(ID string, ackMap map[string]int, localAddr *net.UDPAddr) {
+func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
     ackBuffer := make([]byte, 1024)
     for {
-		nextStageAddrMutex.Lock()
-		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][0])
-		if err != nil {
-			fmt.Printf("Error resolving UDP address: %v\n", err)
-			nextStageAddrMutex.Unlock()
-			continue
-		}
-		nextStageAddrMutex.Unlock()
-
-		conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageUdpAddr, err)
-			continue
-		}
-		
-
-		timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
-		conn.SetReadDeadline(time.Now().Add(timeoutDuration))
-
-		fmt.Printf("Waiting for ACK from next stage %s\n", nextStageUdpAddr)
-        n, err := conn.Read(ackBuffer)
+        n, _, err := conn.ReadFromUDP(ackBuffer)
         if err != nil {
             continue
         }
@@ -304,7 +275,7 @@ func handleStage1Acks(ID string, ackMap map[string]int, localAddr *net.UDPAddr) 
     }
 }
 
-func handleStage1resend(ID string, ackMap map[string]int, localAddr *net.UDPAddr) {
+func handleStage1resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 	for {
 		nextStageAddrMutex.Lock()
 		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][0])
@@ -313,15 +284,8 @@ func handleStage1resend(ID string, ackMap map[string]int, localAddr *net.UDPAddr
 			nextStageAddrMutex.Unlock()
 			continue
 		}
-
-		conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageUdpAddr, err)
-			nextStageAddrMutex.Unlock()
-			continue
-		}
 		for line := range ackMap {
-			_, err := conn.Write([]byte(line))
+			_, err := conn.WriteToUDP([]byte(line), nextStageUdpAddr)
 			if err != nil {
 				fmt.Printf("Error resending line: %v\n", err)
 				nextStageAddrMutex.Unlock()
@@ -346,7 +310,6 @@ func startTaskServerStage2(port int, params []string) {
     nextStageListStr := strings.TrimSpace(params[4])
     recover := strings.TrimSpace(params[5])
 
-	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", port))
 
 	nextStageListStr = strings.Trim(nextStageListStr, "[]")
     nextStageList := strings.Fields(nextStageListStr)
@@ -448,10 +411,6 @@ func startTaskServerStage2(port int, params []string) {
 		}
 	}
 
-    go handleStage2Acks(ID, ackMap, ackedFilename, taskNo, localAddr)
-
-	go handleStage2resend(ID, ackMap, localAddr)
-
 	addr := net.UDPAddr{
         Port: port,
         IP:   net.ParseIP("0.0.0.0"),
@@ -463,6 +422,13 @@ func startTaskServerStage2(port int, params []string) {
         return
     }
     defer conn.Close()
+
+	timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
+	conn.SetReadDeadline(time.Now().Add(timeoutDuration))
+
+	go handleStage2Acks(ID, ackMap, ackedFilename, taskNo, conn)
+
+	go handleStage2resend(ID, ackMap, conn)
 
 	buffer := make([]byte, 1024)
     for {
@@ -526,19 +492,16 @@ func startTaskServerStage2(port int, params []string) {
         nextStageIndex := int(hashValue[0]) % len(nextStageList)
 
 		nextStageAddrMutex.Lock()
-        nextStage := nextStageAddrMap[ID][nextStageIndex]
-
-		nextConns, err := net.Dial("udp", nextStage)
+        nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][nextStageIndex])
 		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
+			fmt.Printf("Error resolving UDP address: %v\n", err)
 			nextStageAddrMutex.Unlock()
 			continue
 		}
-		nextConns.Close()
 
-		_, err = nextConns.Write([]byte(request))
+		_, err = conn.WriteToUDP([]byte(request), nextStageUdpAddr)
         if err != nil {
-            fmt.Printf("Error sending response to next stage %s: %v\n", nextStage, err)
+            fmt.Printf("Error sending response to next stage %s: %v\n", nextStageAddrMap[ID][nextStageIndex], err)
             nextStageAddrMutex.Unlock()
 			continue
         }
@@ -569,13 +532,13 @@ func startTaskServerStage2(port int, params []string) {
 	endMessage := fmt.Sprintf("END_OF_TASK %s", taskNo)
 	nextStageAddrMutex.Lock()
 	for _, nextStage := range nextStageAddrMap[ID] {
-		nextConn, err := net.Dial("udp", nextStage)
+		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStage)
 		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
+			fmt.Printf("Error resolving UDP address: %v\n", err)
 			continue
 		}
-		defer conn.Close()
-		_, err = nextConn.Write([]byte(endMessage))
+
+		_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
 		if err != nil {
 			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
 			continue
@@ -584,93 +547,71 @@ func startTaskServerStage2(port int, params []string) {
 	nextStageAddrMutex.Unlock()
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
-	logConn, err := net.Dial("udp", leaderAddr)
+
+	leaderUdpAddr, err := net.ResolveUDPAddr("udp", leaderAddr)
 	if err != nil {
-		fmt.Printf("Error connecting to leader %s: %v\n", leaderAddr, err)
+		fmt.Printf("Error resolving UDP address: %v\n", err)
 		return
 	}
-	defer logConn.Close()
 
 	logMessage := fmt.Sprintf("[Log] 2 %s", taskNo)
-	_, err = logConn.Write([]byte(logMessage))
+	_, err = conn.WriteToUDP([]byte(logMessage), leaderUdpAddr)
 	if err != nil {
 		fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
 	}
 }
 
-func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, taskNo string, localAddr *net.UDPAddr) {
+func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, taskNo string, conn *net.UDPConn) {
 	ackBuffer := make([]byte, 1024)
 	for {
-		nextStageAddrMutex.Lock()
-		nextStages := nextStageAddrMap[ID]
-		nextStageAddrMutex.Unlock()
-
-		for _, address := range nextStages {
-			nextStageUdpAddr, err := net.ResolveUDPAddr("udp", address)
-			if err != nil {
-				fmt.Printf("Error resolving UDP address: %v\n", err)
-				continue
-			}
-
-			conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-			if err != nil {
-				fmt.Printf("Error connecting to next stage %s: %v\n", address, err)
-				continue
-			}
-
-			timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
-			conn.SetReadDeadline(time.Now().Add(timeoutDuration))
-
-			n, err := conn.Read(ackBuffer)
-			if err != nil {
-				conn.Close()
-				continue
-			}
+		n, _, err := conn.ReadFromUDP(ackBuffer)
+		if err != nil {
 			conn.Close()
+			continue
+		}
 
-			ack := string(ackBuffer[:n])
-			parts := strings.SplitN(ack, "@", 2)
-			if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
-				fmt.Printf("Invalid ACK received: %s\n", ack)
+		ack := string(ackBuffer[:n])
+		parts := strings.SplitN(ack, "@", 2)
+		if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
+			fmt.Printf("Invalid ACK received: %s\n", ack)
+			continue
+		}
+
+		line := parts[1]
+
+		nextStageAddrMutex.Lock()
+		if _, exists := ackMap[line]; exists {
+
+			file, err := os.Create(ackedFilename)
+			if err != nil {
+				fmt.Printf("Error creating file %s: %v\n", ackedFilename, err)
+				nextStageAddrMutex.Unlock()
 				continue
 			}
 
-			line := parts[1]
-
-			nextStageAddrMutex.Lock()
-			if _, exists := ackMap[line]; exists {
-
-				file, err := os.Create(ackedFilename)
-				if err != nil {
-					fmt.Printf("Error creating file %s: %v\n", ackedFilename, err)
-					nextStageAddrMutex.Unlock()
-					continue
-				}
-
-				_, err = file.WriteString(line)
-				if err != nil {
-					fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
-					nextStageAddrMutex.Unlock()
-					continue
-				}
-				file.Close()
-
-				cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
-				err = cmd.Run()
-				if err != nil {
-					fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
-					nextStageAddrMutex.Unlock()
-					continue
-				}
-
-				delete(ackMap, line)
+			_, err = file.WriteString(line)
+			if err != nil {
+				fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
+				nextStageAddrMutex.Unlock()
+				continue
 			}
-			nextStageAddrMutex.Unlock()
+			file.Close()
+
+			cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
+			err = cmd.Run()
+			if err != nil {
+				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+				nextStageAddrMutex.Unlock()
+				continue
+			}
+
+			delete(ackMap, line)
 		}
+		nextStageAddrMutex.Unlock()
 	}
 }
 
-func handleStage2resend(ID string, ackMap map[string]int, localAddr *net.UDPAddr) {
+func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 	for {
 		nextStageAddrMutex.Lock()
 		for line := range ackMap {
@@ -686,13 +627,7 @@ func handleStage2resend(ID string, ackMap map[string]int, localAddr *net.UDPAddr
 				continue
 			}
 
-			conn, err := net.DialUDP("udp", localAddr, nextStageUdpAddr)
-			if err != nil {
-				fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
-				continue
-			}
-
-			_, err = conn.Write([]byte(fmt.Sprintf("%s\n", line)))
+			_, err = conn.WriteToUDP([]byte(line), nextStageUdpAddr)
 			if err != nil {
 				fmt.Printf("Error resending line: %v\n", err)
 				conn.Close()
@@ -913,21 +848,20 @@ func startTaskServerStage3(port int, params []string) {
 			}
 		}
 
-		conn.Write([]byte("ACK@" + request))
+		conn.WriteToUDP([]byte("ACK@" + request), &addr)
 
         fmt.Printf("Sent processed data to HyDFS: %s\n", hydfsDestFilename)
     }
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
-	logConn, err := net.Dial("udp", leaderAddr)
+	leaderUdpAddr, err := net.ResolveUDPAddr("udp", leaderAddr)
 	if err != nil {
-		fmt.Printf("Error connecting to leader %s: %v\n", leaderAddr, err)
+		fmt.Printf("Error resolving UDP address: %v\n", err)
 		return
 	}
-	defer logConn.Close()
 
 	logMessage := fmt.Sprintf("[Log] 3 %s", taskNo)
-	_, err = logConn.Write([]byte(logMessage))
+	_, err = conn.WriteToUDP([]byte(logMessage), leaderUdpAddr)
 	if err != nil {
 		fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
 	}
