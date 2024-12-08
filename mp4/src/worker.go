@@ -889,25 +889,27 @@ func startTaskServerStage3(port int, params []string) {
         fmt.Printf("Sent processed data to HyDFS: %s\n", hydfsDestFilename)
     }
 
-	file, err := os.Create(outputFilename)
-	if err != nil {
-		fmt.Printf("Error creating file %s: %v\n", outputFilename, err)
-		return
-	}
-
-	for key, value := range state {
-		_, err = file.WriteString(fmt.Sprintf("%s %d\n", key, value))
+	if stateful == "stateful" {
+		file, err := os.Create(outputFilename)
 		if err != nil {
-			fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
+			fmt.Printf("Error creating file %s: %v\n", outputFilename, err)
 			return
 		}
-	}
 
-	cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
-	err = cmd.Run()
-	if err != nil {
-		fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
-		return
+		for key, value := range state {
+			_, err = file.WriteString(fmt.Sprintf("%s %d\n", key, value))
+			if err != nil {
+				fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
+				return
+			}
+		}
+
+		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
+		err = cmd.Run()
+		if err != nil {
+			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+			return
+		}
 	}
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
