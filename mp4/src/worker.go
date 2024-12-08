@@ -433,7 +433,7 @@ func startTaskServerStage2(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
-        n, _, err := conn.ReadFromUDP(buffer)
+        n, addr, err := conn.ReadFromUDP(buffer)
         if err != nil {
             fmt.Println("Error reading from UDP:", err)
             continue
@@ -512,7 +512,12 @@ func startTaskServerStage2(port int, params []string) {
 		nextStageAddrMutex.Unlock()
 
 		// Send ACK to previous stage
-		conn.Write([]byte("ACK@" + request))
+		response := fmt.Sprintf("ACK%s", request)
+		_, err = conn.WriteToUDP([]byte(response), addr)
+		if err != nil {
+			fmt.Printf("Error sending ACK to previous stage: %v\n", err)
+			continue
+		}
 
         fmt.Printf("Sent response to next stage: %s\n", nextStage)
 	}
