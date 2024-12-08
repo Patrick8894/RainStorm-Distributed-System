@@ -78,9 +78,11 @@ func main() {
 
         if strings.HasPrefix(message, "[Log]") {
             // worker send ACK message
+            fmt.Println("Handling worker message", message)
             handleLogMessage(message, clientAddr)
         } else {
             if len(addressTaskMap) == 0 {
+                fmt.Println("Processing client request", clientAddr)
 				ClientAddr = clientAddr
                 processClientRequest(message)
             } else {
@@ -376,6 +378,7 @@ func sendCompletionMessage() {
 func processClientRequest(message string) {
     parts := strings.Split(message, " ")
     if len(parts) != 7 {
+        fmt.Println("Invalid message, message legnth is less then 7")
         return
     }
 
