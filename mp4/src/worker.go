@@ -799,6 +799,7 @@ func startTaskServerStage3(port int, params []string) {
 			if totalNum == 0 {
 				break
 			}
+			continue
 		}
 
 		if _, exists := processedInput[request]; exists {
