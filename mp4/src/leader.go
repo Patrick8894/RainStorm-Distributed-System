@@ -340,6 +340,7 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 			if task.Stage == stage && task.Index == index {
 				fmt.Printf("Task completed: stage=%d, index=%d\n", stage, index)
 				addressTaskMap[address] = append(tasks[:i], tasks[i+1:]...)
+				fmt.Printf("len(addressTaskMap[addr]): %d\n", len(addressTaskMap[addr]))
 				break
 			}
 		}
