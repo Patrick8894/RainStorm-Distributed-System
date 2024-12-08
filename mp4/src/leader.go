@@ -346,6 +346,7 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 		if len(addressTaskMap[addr]) == 0 {
 			delete(addressTaskMap, addr)
 			fmt.Printf("All tasks completed for address: %s\n", addr)
+			fmt.Printf("len(addressTaskMap): %d\n", len(addressTaskMap))
 			if len(addressTaskMap) == 0 {
 				sendCompletionMessage(conn)
 			}
@@ -354,6 +355,7 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 }
 
 func sendCompletionMessage(conn *net.UDPConn) {
+	fmt.Printf("All tasks completed\n")
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
