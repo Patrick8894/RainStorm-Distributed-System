@@ -78,6 +78,11 @@ func main() {
 }
 
 func processTaskRequest(message string) string {
+
+	nextStageAddrMutex.Lock()
+	nextStageAddrMap = make(map[string][]string)
+	nextStageAddrMutex.Unlock()
+
     parts := strings.Split(message, "^")
 
     taskType := strings.TrimSpace(parts[0])

@@ -18,6 +18,6 @@ func main() {
     if len(words) >= 9 {
         fmt.Printf("%s", strings.TrimSpace(words[8]))
     } else {
-        fmt.Println("Input does not contain enough words.")
+        fmt.Printf("Input does not contain enough words.")
     }
 }
