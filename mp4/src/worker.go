@@ -567,9 +567,11 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 				continue
 			}
 
+			timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
+			conn.SetReadDeadline(time.Now().Add(timeoutDuration))
+
 			n, err := conn.Read(ackBuffer)
 			if err != nil {
-				fmt.Printf("Error receiving ACK: %v\n", err)
 				conn.Close()
 				continue
 			}
