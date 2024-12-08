@@ -539,9 +539,10 @@ func startTaskServerStage2(port int, params []string) {
 	fmt.Printf("All data sent\n")
 
 	// Send end of task message to all next stages
-	endMessage := fmt.Sprintf("END_OF_TASK %s", taskNo)
 	nextStageAddrMutex.Lock()
+	endMessage := fmt.Sprintf("END_OF_TASK %s", taskNo)
 	for _, nextStage := range nextStageAddrMap[ID] {
+		fmt.Printf("Sending end of task message to next stage %s\n", nextStage)
 		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStage)
 		if err != nil {
 			fmt.Printf("Error resolving UDP address: %v\n", err)
