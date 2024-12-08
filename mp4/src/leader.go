@@ -398,6 +398,8 @@ func processClientRequest(message string) {
 		return
 	}
 	
+    fmt.Printf("Creat Log file\n")
+
 	log.WriteString(fmt.Sprintf("Received request: %s\n", message))
 	log.Close()
 
