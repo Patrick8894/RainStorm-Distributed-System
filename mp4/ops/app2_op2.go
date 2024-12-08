@@ -14,7 +14,7 @@ func main() {
     input := scanner.Text()
 
 	// the delimiter might be changed
-    words := strings.Split(input, "\0")
+    words := strings.Split(input, "\x00")
     if len(words) >= 9 {
         fmt.Printf("%s\n", strings.TrimSpace(words[8]))
     } else {

@@ -21,7 +21,7 @@ func main() {
     input := scanner.Text()
 
 	// the delimiter might be changed
-    words := strings.Split(input, "\0")
+    words := strings.Split(input, "\x00")
     if len(words) >= 7 && strings.TrimSpace(words[6]) == X {
         fmt.Println(1)
     } else {

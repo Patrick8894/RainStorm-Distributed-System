@@ -10,8 +10,4 @@ server
 client
 worker
 leader
-app1_op1
-app1_op2
-app2_op1
-app2_op2
 mp3/data/*
