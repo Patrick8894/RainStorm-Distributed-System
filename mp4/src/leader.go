@@ -335,12 +335,19 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 
     address := strings.Split(workerAddr.IP.String(), ":")[0]
 
+	fmt.Printf("AddressTaskMap before:\n")
+	for addr, tasks := range addressTaskMap {
+		fmt.Printf("Address: %s\n", addr)
+		for _, task := range tasks {
+			fmt.Printf("Task: %s\n", task.Message)
+		}
+	}
+
 	for addr, tasks := range addressTaskMap {
 		for i, task := range tasks {
 			if task.Stage == stage && task.Index == index {
 				fmt.Printf("Task completed: stage=%d, index=%d\n", stage, index)
 				addressTaskMap[address] = append(tasks[:i], tasks[i+1:]...)
-				fmt.Printf("len(addressTaskMap[addr]): %d\n", len(addressTaskMap[addr]))
 				break
 			}
 		}
@@ -355,7 +362,7 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 	}
 
 	// print addressTaskMap
-	fmt.Printf("AddressTaskMap:\n")
+	fmt.Printf("AddressTaskMap after:\n")
 	for addr, tasks := range addressTaskMap {
 		fmt.Printf("Address: %s\n", addr)
 		for _, task := range tasks {
