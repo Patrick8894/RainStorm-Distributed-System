@@ -335,6 +335,16 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 
     address := strings.Split(workerAddr.IP.String(), ":")[0]
 
+	// print addressTaskMap
+	for addr, tasks := range addressTaskMap {
+		fmt.Printf("Address: %s\n", addr)
+		for _, task := range tasks {
+			fmt.Printf("Task: %s\n", task.Message)
+		}
+	}
+
+	fmt.Printf("Address: %s\n", address)
+
     if tasks, exists := addressTaskMap[address]; exists {
         for i, task := range tasks {
             if task.Stage == stage && task.Index == index {
