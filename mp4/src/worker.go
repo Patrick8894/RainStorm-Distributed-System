@@ -314,7 +314,7 @@ func startTaskServerStage2(port int, params []string) {
 	ID := fmt.Sprintf("2 %s", taskNo)
 
 	nextStageAddrMutex.Lock()
-	nextStageAddrMap[taskNo] = nextStageList
+	nextStageAddrMap[ID] = nextStageList
 	nextStageAddrMutex.Unlock()
 
 	processedFilename := fmt.Sprintf("%s/2_%s_PROC", os.Getenv("HOME"), taskNo)
@@ -484,8 +484,6 @@ func startTaskServerStage2(port int, params []string) {
         hash := sha256.Sum256([]byte(request))
         hashValue := hex.EncodeToString(hash[:])
         nextStageIndex := int(hashValue[0]) % len(nextStageList)
-		fmt.Printf("nextStageList: %v\n", nextStageList)
-		fmt.Printf("nextStageIndex: %d\n", nextStageIndex)
 
 		nextStageAddrMutex.Lock()
         nextStage := nextStageAddrMap[ID][nextStageIndex]
