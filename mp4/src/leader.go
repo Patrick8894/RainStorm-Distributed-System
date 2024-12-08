@@ -353,6 +353,15 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 			}
 		}
 	}
+
+	// print addressTaskMap
+	fmt.Printf("AddressTaskMap:\n")
+	for addr, tasks := range addressTaskMap {
+		fmt.Printf("Address: %s\n", addr)
+		for _, task := range tasks {
+			fmt.Printf("Task: %s\n", task.Message)
+		}
+	}
 }
 
 func sendCompletionMessage(conn *net.UDPConn) {
