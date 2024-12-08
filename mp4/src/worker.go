@@ -59,6 +59,7 @@ func main() {
 
         // Schedule the task
         port := processTaskRequest(message)
+		
         var response string
         if port != "" {
             response = fmt.Sprintf("Success, port=%s", port)
@@ -94,6 +95,7 @@ func processTaskRequest(message string) string {
 	log.WriteString(fmt.Sprintf("Task %s scheduled on port %d\n", taskType, port))
 	log.Close()
 
+	fmt.Printf("Task %s scheduled on port %d\n", taskType, port)
     switch taskType {
     case "1":
         go startTaskServerStage1(port, parts[1:])
@@ -128,7 +130,7 @@ func startTaskServerStage1(port int, params []string) {
 	nextStageAddrMutex.Unlock()
 
     localFilename := fmt.Sprintf("%s/1_%s", os.Getenv("HOME"), taskNo)
-    cmd := exec.Command("go", "run", "../../mp3/src/client.go", "get", "--localfilename", localFilename, "--HyDFSfilename", hydfsSrcFile)
+    cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localFilename, "--HyDFSfilename", hydfsSrcFile)
 
     err = cmd.Run()
     if err != nil {
@@ -315,7 +317,7 @@ func startTaskServerStage2(port int, params []string) {
 
 	if recover == "true" {
 		// Get the processed data from HyDFS
-		cmd := exec.Command("go", "run", "../../mp3/src/client.go", "get", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
+		cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
 		err := cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to get file from HyDFS: %v\n", err)
@@ -338,7 +340,7 @@ func startTaskServerStage2(port int, params []string) {
 		file.Close()
 		
 		// Get the acked data from HyDFS
-		cmd = exec.Command("go", "run", "../../mp3/src/client.go", "get", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
+		cmd = exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to get file from HyDFS: %v\n", err)
@@ -370,7 +372,7 @@ func startTaskServerStage2(port int, params []string) {
 		file.Close()
 
 		// Run the command to create the file in HyDFS
-		cmd := exec.Command("go", "run", "../../mp3/src/client.go", "create", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
+		cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
@@ -386,7 +388,7 @@ func startTaskServerStage2(port int, params []string) {
 		file.Close()
 
 		// Run the command to create the file in HyDFS
-		cmd = exec.Command("go", "run", "../../mp3/src/client.go", "create", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
+		cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
@@ -459,7 +461,7 @@ func startTaskServerStage2(port int, params []string) {
 		file.Close()
 
 		// Send the processed data to HyDFS
-		cmd = exec.Command("go", "run", "../../mp3/src/client.go", "append", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
+		cmd = exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -584,7 +586,7 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 				}
 				file.Close()
 
-				cmd := exec.Command("go", "run", "../../mp3/src/client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
+				cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
 				err = cmd.Run()
 				if err != nil {
 					fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -652,7 +654,7 @@ func startTaskServerStage3(port int, params []string) {
 
 	if recover == "true" {
 		// Get the processed data from HyDFS
-		cmd := exec.Command("go", "run", "../../mp3/src/client.go", "get", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
+		cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
 		err := cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to get file from HyDFS: %v\n", err)
@@ -675,7 +677,7 @@ func startTaskServerStage3(port int, params []string) {
 
 		if stateful == "stateful" {
 			// Get the state data from HyDFS
-			cmd := exec.Command("go", "run", "../../mp3/src/client.go", "get", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
+			cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to get file from HyDFS: %v\n", err)
@@ -713,7 +715,7 @@ func startTaskServerStage3(port int, params []string) {
 		}
 		file.Close()
 
-		cmd := exec.Command("go", "run", "../../mp3/src/client.go", "create", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
+		cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
@@ -728,7 +730,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 			file.Close()
 
-			cmd := exec.Command("go", "run", "../../mp3/src/client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_STATE", taskNo))
+			cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
@@ -803,7 +805,7 @@ func startTaskServerStage3(port int, params []string) {
 		file.Close()
 
 		// Send the processed data to HyDFS
-		cmd = exec.Command("go", "run", "../../mp3/src/client.go", "append", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
+		cmd = exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -826,7 +828,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 
 			// Send the processed data to HyDFS
-			cmd = exec.Command("go", "run", "../../mp3/src/client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
+			cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
