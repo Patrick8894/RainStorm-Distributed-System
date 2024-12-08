@@ -243,18 +243,21 @@ func handleStage1Acks(ID string, ackMap map[string]int) {
 		conn, err := net.Dial("udp", nextStageAddrMap[ID][0])
 		if err != nil {
 			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageAddrMap[ID], err)
+			nextStageAddrMutex.Unlock()
 			continue
 		}
         n, err := conn.Read(ackBuffer)
         if err != nil {
             fmt.Printf("Error receiving ACK: %v\n", err)
-            return
+			nextStageAddrMutex.Unlock()
+            continue
         }
 
         ack := string(ackBuffer[:n])
         parts := strings.SplitN(ack, "@", 2)
         if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
             fmt.Printf("Invalid ACK received: %s\n", ack)
+			nextStageAddrMutex.Unlock()
             continue
         }
 
@@ -273,12 +276,14 @@ func handleStage1resend(ID string, ackMap map[string]int) {
 		conn, err := net.Dial("udp", nextStageAddrMap[ID][0])
 		if err != nil {
 			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageAddrMap[ID], err)
+			nextStageAddrMutex.Unlock()
 			continue
 		}
 		for line := range ackMap {
 			_, err := conn.Write([]byte(line))
 			if err != nil {
 				fmt.Printf("Error resending line: %v\n", err)
+				nextStageAddrMutex.Unlock()
 				continue
 			}
 		}
