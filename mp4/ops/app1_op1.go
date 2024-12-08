@@ -21,7 +21,7 @@ func main() {
     input := scanner.Text()
 
 	// the delimiter might be changed
-    words := strings.Split(input, ",")
+    words := strings.Split(input, "\0")
     for _, word := range words {
         if strings.TrimSpace(word) == X {
             fmt.Println(1)
