@@ -460,7 +460,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
 		if _, exists := processInput[request]; exists {
-			conn.Write([]byte("ACK@" + request))
+			conn.WriteToUDP([]byte("ACK@" + request), addr)
 			continue
 		}
 
@@ -788,7 +788,7 @@ func startTaskServerStage3(port int, params []string) {
 		}
 
 		if _, exists := processedInput[request]; exists {
-			conn.Write([]byte("ACK@" + request))
+			conn.WriteToUDP([]byte("ACK@" + request), &addr)
 			continue
 		}
 
