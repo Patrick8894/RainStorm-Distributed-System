@@ -1,4 +1,4 @@
-go run src/client.go app1_op1.go app1_op2.go Traffic_Signs_1000.txt app1.txt 3 "No Outlet" stateless
+go run src/client.go app1_op1.go app1_op2.go Traffic_Signs_1000.txt test2_1.txt 3 "No Outlet" stateless
 
 # wait to the middle of the steam processing
 sleep 1.5
