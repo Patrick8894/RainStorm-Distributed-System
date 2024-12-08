@@ -377,6 +377,7 @@ func sendCompletionMessage() {
 
 func processClientRequest(message string) {
     parts := strings.Split(message, " ")
+    fmt.Println("Received message parts:", parts)
     if len(parts) != 7 {
         fmt.Println("Invalid message, message legnth is less then 7")
         return
