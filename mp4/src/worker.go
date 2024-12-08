@@ -149,7 +149,7 @@ func startTaskServerStage1(port int, params []string) {
 
 	ackMap := make(map[string]int)
 
-    // go handleStage1Acks(ID, ackMap)
+    go handleStage1Acks(ID, ackMap)
 
 	go handleStage1resend(ID, ackMap)
 
@@ -248,10 +248,10 @@ func handleStage1Acks(ID string, ackMap map[string]int) {
 			nextStageAddrMutex.Unlock()
 			continue
 		}
+		nextStageAddrMutex.Unlock()
         n, err := conn.Read(ackBuffer)
         if err != nil {
             fmt.Printf("Error receiving ACK: %v\n", err)
-			nextStageAddrMutex.Unlock()
             continue
         }
 
@@ -259,11 +259,12 @@ func handleStage1Acks(ID string, ackMap map[string]int) {
         parts := strings.SplitN(ack, "@", 2)
         if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
             fmt.Printf("Invalid ACK received: %s\n", ack)
-			nextStageAddrMutex.Unlock()
             continue
         }
 
         line := parts[1]
+
+		nextStageAddrMutex.Lock()
 
         if _, exists := ackMap[line]; exists {
             delete(ackMap, line)
