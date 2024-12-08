@@ -488,14 +488,16 @@ func startTaskServerStage2(port int, params []string) {
 		nextConns, err := net.Dial("udp", nextStage)
 		if err != nil {
 			fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
-			return
+			nextStageAddrMutex.Unlock()
+			continue
 		}
 		defer conn.Close()
 
 		_, err = nextConns.Write([]byte(request))
         if err != nil {
             fmt.Printf("Error sending response to next stage %s: %v\n", nextStage, err)
-            continue
+            nextStageAddrMutex.Unlock()
+			continue
         }
 		nextStageAddrMutex.Unlock()
 
@@ -522,13 +524,13 @@ func startTaskServerStage2(port int, params []string) {
 		nextConn, err := net.Dial("udp", nextStage)
 		if err != nil {
 			fmt.Printf("Error connecting to next stage %s: %v\n", nextStage, err)
-			return
+			continue
 		}
 		defer conn.Close()
 		_, err = nextConn.Write([]byte(endMessage))
 		if err != nil {
 			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
-			return
+			continue
 		}
 	}
 	nextStageAddrMutex.Unlock()
@@ -585,12 +587,14 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 				file, err := os.Create(ackedFilename)
 				if err != nil {
 					fmt.Printf("Error creating file %s: %v\n", ackedFilename, err)
+					nextStageAddrMutex.Unlock()
 					continue
 				}
 
 				_, err = file.WriteString(line)
 				if err != nil {
 					fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
+					nextStageAddrMutex.Unlock()
 					continue
 				}
 				file.Close()
@@ -599,6 +603,7 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 				err = cmd.Run()
 				if err != nil {
 					fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+					nextStageAddrMutex.Unlock()
 					continue
 				}
 
