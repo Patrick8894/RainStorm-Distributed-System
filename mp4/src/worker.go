@@ -419,6 +419,8 @@ func startTaskServerStage2(port int, params []string) {
 
 	go handleStage2resend(ID, ackMap, conn)
 
+	endOfTask := false
+
 	buffer := make([]byte, 1024)
     for {
         n, addr, err := conn.ReadFromUDP(buffer)
@@ -431,12 +433,23 @@ func startTaskServerStage2(port int, params []string) {
         fmt.Printf("Received request: %s\n", request)
 
 		if request == "END_OF_TASK" {
-			break
+			endOfTask = true
+			nextStageAddrMutex.Lock()
+			if len(ackMap) == 0 {
+				break
+			}
+			nextStageAddrMutex.Unlock()
 		}
 
 		if strings.HasPrefix(request, "ACK") {
 			handleStage2Acks(ID, ackMap, ackedFilename, taskNo, request)
-			continue
+			if endOfTask {
+				nextStageAddrMutex.Lock()
+				if len(ackMap) == 0 {
+					break
+				}
+				nextStageAddrMutex.Unlock()
+			}
 		}
 
 		if _, exists := processInput[request]; exists {
