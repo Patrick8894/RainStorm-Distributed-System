@@ -183,9 +183,7 @@ func startTaskServerStage1(port int, params []string) {
 
     for i := start; i < end; i++ {
 		line := lines[i]
-		fmt.Printf("line: %s, address: %s\n", line, nextStageAddrMap)
 		nextStageAddrMutex.Lock()
-		fmt.Printf("achienve lock\n")
 
 		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][0])
 		if err != nil {
@@ -419,8 +417,6 @@ func startTaskServerStage2(port int, params []string) {
     }
     defer conn.Close()
 
-	go handleStage2Acks(ID, ackMap, ackedFilename, taskNo, conn)
-
 	go handleStage2resend(ID, ackMap, conn)
 
 	buffer := make([]byte, 1024)
@@ -436,6 +432,11 @@ func startTaskServerStage2(port int, params []string) {
 
 		if request == "END_OF_TASK" {
 			break
+		}
+
+		if strings.HasPrefix(request, "ACK") {
+			handleStage2Acks(ID, ackMap, ackedFilename, taskNo, request)
+			continue
 		}
 
 		if _, exists := processInput[request]; exists {
@@ -554,53 +555,45 @@ func startTaskServerStage2(port int, params []string) {
 	}
 }
 
-func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, taskNo string, conn *net.UDPConn) {
-	ackBuffer := make([]byte, 1024)
-	for {
-		n, _, err := conn.ReadFromUDP(ackBuffer)
-		if err != nil {
-			continue
-		}
+func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, taskNo string, ack string) {
 
-		ack := string(ackBuffer[:n])
-		parts := strings.SplitN(ack, "@", 2)
-		if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
-			fmt.Printf("Invalid ACK received: %s\n", ack)
-			continue
-		}
-
-		line := parts[1]
-
-		nextStageAddrMutex.Lock()
-		if _, exists := ackMap[line]; exists {
-
-			file, err := os.Create(ackedFilename)
-			if err != nil {
-				fmt.Printf("Error creating file %s: %v\n", ackedFilename, err)
-				nextStageAddrMutex.Unlock()
-				continue
-			}
-
-			_, err = file.WriteString(line)
-			if err != nil {
-				fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
-				nextStageAddrMutex.Unlock()
-				continue
-			}
-			file.Close()
-
-			cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
-			err = cmd.Run()
-			if err != nil {
-				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
-				nextStageAddrMutex.Unlock()
-				continue
-			}
-
-			delete(ackMap, line)
-		}
-		nextStageAddrMutex.Unlock()
+	parts := strings.SplitN(ack, "@", 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
+		fmt.Printf("Invalid ACK received: %s\n", ack)
+		return
 	}
+
+	line := parts[1]
+
+	nextStageAddrMutex.Lock()
+	if _, exists := ackMap[line]; exists {
+
+		file, err := os.Create(ackedFilename)
+		if err != nil {
+			fmt.Printf("Error creating file %s: %v\n", ackedFilename, err)
+			nextStageAddrMutex.Unlock()
+			return
+		}
+
+		_, err = file.WriteString(line)
+		if err != nil {
+			fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
+			nextStageAddrMutex.Unlock()
+			return
+		}
+		file.Close()
+
+		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", ackedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_ACKED", taskNo))
+		err = cmd.Run()
+		if err != nil {
+			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+			nextStageAddrMutex.Unlock()
+			return
+		}
+
+		delete(ackMap, line)
+	}
+	nextStageAddrMutex.Unlock()
 }
 
 func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
