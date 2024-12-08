@@ -501,7 +501,7 @@ func startTaskServerStage2(port int, params []string) {
 		nextStageAddrMutex.Unlock()
 
 		// Send ACK to previous stage
-		ackMessage := fmt.Sprintf("ACK%s", request)
+		ackMessage := fmt.Sprintf("ACK@%s", request)
 		_, err = conn.WriteToUDP([]byte(ackMessage), addr)
 		if err != nil {
 			fmt.Printf("Error sending ACK to previous stage: %s\n", addr)
