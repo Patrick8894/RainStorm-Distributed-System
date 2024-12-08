@@ -28,8 +28,7 @@ func main() {
         return
     }
 
-    message := fmt.Sprintf("%s %s %s %s %s %s %s", op1Exe, op2Exe, hydfsSrcFile, hydfsDestFilename, numTasks, X, stateful)
-    fmt.Println("Command Message:", message)
+    message := fmt.Sprintf("%s^%s^%s^%s^%s^%s^%s", op1Exe, op2Exe, hydfsSrcFile, hydfsDestFilename, numTasks, X, stateful)
 
     conn, err := net.Dial("udp", leader+":"+leaderPort)
     if err != nil {

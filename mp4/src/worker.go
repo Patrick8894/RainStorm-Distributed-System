@@ -75,7 +75,7 @@ func main() {
 }
 
 func processTaskRequest(message string) string {
-    parts := strings.Split(message, ",")
+    parts := strings.Split(message, "^")
 
     taskType := strings.TrimSpace(parts[0])
 

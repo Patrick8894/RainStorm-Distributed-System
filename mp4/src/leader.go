@@ -231,8 +231,8 @@ func updateMembership() {
 			if task.Address == address {
 				missing = true
 				// update first task results with new address
-				parts := strings.Split(task.Message, ",")
-				task.Message = fmt.Sprintf("%s,%s,%d,%s,%s,%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
+				parts := strings.Split(task.Message, "^")
+				task.Message = fmt.Sprintf("%s^%s^%d^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
 				stage2Addresses[task.Index] = scheduleTask(task.Message, task.Stage, task.Index, true)
 				// find previous stage address
 				previousStageAddr := stage1Tasks[task.Index].Address + ":" + workerPort
@@ -376,7 +376,7 @@ func sendCompletionMessage() {
 }
 
 func processClientRequest(message string) {
-    parts := strings.Split(message, " ")
+    parts := strings.Split(message, "^")
     fmt.Println("Received message parts:", parts)
     if len(parts) != 7 {
         fmt.Println("Invalid message, message legnth is less then 7")
@@ -410,7 +410,7 @@ func processClientRequest(message string) {
 
 	var firstTaskResults []string
     for i := 0; i < numTasksInt; i++ {
-        taskMessage := fmt.Sprintf("3, %s, %s, %d, %s, %s", op2Exe, stateful, i, numTasks, hydfsDestFilename)
+        taskMessage := fmt.Sprintf("3^%s^%s^%d^%s^%s", op2Exe, stateful, i, numTasks, hydfsDestFilename)
         result := scheduleTask(taskMessage, 3, i, false)
 		if result == "" {
 			i--
@@ -421,7 +421,7 @@ func processClientRequest(message string) {
 
 	var secondTaskResults []string
     for i := 0; i < numTasksInt; i++ {
-        taskMessage := fmt.Sprintf("2, %s, %d, %s, %s, %v", op1Exe, i, numTasks, X, firstTaskResults)
+        taskMessage := fmt.Sprintf("2^%s^%d^%s^%s^%v", op1Exe, i, numTasks, X, firstTaskResults)
         result := scheduleTask(taskMessage, 2, i, false)
 		if result == "" {
 			i--
@@ -432,7 +432,7 @@ func processClientRequest(message string) {
 
 	var thirdTaskResults []string
     for i := 0; i < numTasksInt; i++ {
-        taskMessage := fmt.Sprintf("1, %s, %d, %s, %s", hydfsSrcFile, i, numTasks, secondTaskResults[i])
+        taskMessage := fmt.Sprintf("1^%s^%d^%s^%s", hydfsSrcFile, i, numTasks, secondTaskResults[i])
         result := scheduleTask(taskMessage, 1, i, false)
 		if result == "" {
 			i--
@@ -485,7 +485,7 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
     }
     defer conn.Close()
 
-    fullMessage := fmt.Sprintf("%s, %t", message, recover)
+    fullMessage := fmt.Sprintf("%s^%t", message, recover)
     _, err = conn.Write([]byte(fullMessage))
     if err != nil {
         return ""
