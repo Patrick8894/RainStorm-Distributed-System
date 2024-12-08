@@ -81,15 +81,23 @@ $SPARK_HOME/sbin/stop-worker.sh
 ```
 
 ## Usage of Spark
-submit job in master
+1. submit job in master node or worker node
 ```
+# master node
 spark-submit \
-  --master spark://<master_ip>:7077 \
+  --master spark://fa24-cs425-6605.cs.illinois.edu:7077 \
   --deploy-mode cluster \
-  --total-executor-cores 40 \  # Adjust based on your setup
+  traffic_signs_test1.py
+
+# worker node
+spark-submit \
+  --master spark://fa24-cs425-6605.cs.illinois.edu:7077 \
+  --deploy-mode client \
+  --total-executor-cores 40 \
   --executor-memory 2g \
   traffic_signs_test1.py
 ```
+
 simulate the failure
 ```
 sleep 1.5
