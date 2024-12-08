@@ -149,9 +149,9 @@ func startTaskServerStage1(port int, params []string) {
 
 	ackMap := make(map[string]int)
 
-    go handleStage1Acks(ID, ackMap)
+    // go handleStage1Acks(ID, ackMap)
 
-	// go handleStage1resend(ID, ackMap)
+	go handleStage1resend(ID, ackMap)
 
     scanner := bufio.NewScanner(file)
 	if err := scanner.Err(); err != nil {
