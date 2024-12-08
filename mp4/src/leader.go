@@ -4,6 +4,12 @@ import (
     "fmt"
     "net"
     "strings"
+	"sync"
+	"time"
+	"encoding/json"
+	"os"
+	"strconv"
+	"sort"
 )
 
 type State int
@@ -26,17 +32,17 @@ type Task struct {
     Port    int
 	Stage  int
 	Index  int
+	Address string
 }
 
 var SWIMPort = "8082"
 var port = 8090
-var workerPort = 8091
-// Map of address to list of tasks
+var workerPort = "8091"
 var addressTaskMap = make(map[string][]Task)
 var cluster map[string]string
 var clusterLock sync.Mutex
 
-var ClientAddr string
+var ClientAddr *net.UDPAddr
 var logFile string = "../../mp1/data/leader.log"
 
 func main() {
@@ -68,19 +74,20 @@ func main() {
         message := string(buffer[:n])
         fmt.Println("Received message:", message)
 
+		clusterLock.Lock()
+
         if strings.HasPrefix(message, "[Log]") {
             // worker send ACK message
             handleLogMessage(message, clientAddr)
         } else {
-            clusterLock.Lock()
             if len(addressTaskMap) == 0 {
 				ClientAddr = clientAddr
                 processClientRequest(message)
             } else {
                 fmt.Println("Cannot process client request, tasks are currently running")
             }
-            clusterLock.Unlock()
         }
+		clusterLock.Unlock()
     }
 }
 
@@ -134,7 +141,7 @@ func getMembership() map[string]string {
 func updateMembershipPeriodically() {
     for {
         updateMembership()
-        time.Sleep(10 * time.Second) // Update membership every 10 seconds
+        time.Sleep(2 * time.Second) // Update membership every 10 seconds
     }
 }
 
@@ -151,20 +158,128 @@ func updateMembership() {
 	// Find addresses missing in the new membership
     missingAddresses := findMissingAddresses(cluster, response)
 
-    // Reschedule tasks for missing addresses
-    for _, address := range missingAddresses {
-        if tasks, exists := addressTaskMap[address]; exists {
-            for _, task := range tasks {
-                scheduleTask(task.Message, task.Stage, task.Index true)
-            }
-            delete(addressTaskMap, address) // Remove tasks after rescheduling
-        }
-    }
+	// find all stage 3 task
+	stage3Tasks := make([]Task, 0)
+	for _, tasks := range addressTaskMap {
+		for _, t := range tasks {
+			if t.Stage == 3 {
+				stage3Tasks = append(stage3Tasks, t)
+			}
+		}
+	}
+
+	// sort stage 3 tasks by index
+	sort.Slice(stage3Tasks, func(i, j int) bool {
+		return stage3Tasks[i].Index < stage3Tasks[j].Index
+	})
+
+	stage3Addresses := make([]string, len(stage3Tasks))
+	for i, task := range stage3Tasks {
+		stage3Addresses[i] = task.Address + ":" + strconv.Itoa(task.Port)
+	}
+	
+	for _, task := range stage3Tasks {
+		for j := 0; j < len(missingAddresses); j++ {
+			if task.Address == missingAddresses[j] {
+				address := scheduleTask(task.Message, task.Stage, task.Index, true)
+				stage3Addresses[task.Index] = address
+				break
+			}
+		}
+	}
+
+	// find all stage 2 task
+	stage2Tasks := make([]Task, 0)
+	for _, tasks := range addressTaskMap {
+		for _, t := range tasks {
+			if t.Stage == 2 {
+				stage2Tasks = append(stage2Tasks, t)
+			}
+		}
+	}
+
+	// sort stage 2 tasks by index
+	sort.Slice(stage2Tasks, func(i, j int) bool {
+		return stage2Tasks[i].Index < stage2Tasks[j].Index
+	})
+
+	stage2Addresses := make([]string, len(stage2Tasks))
+	for i, task := range stage2Tasks {
+		stage2Addresses[i] = task.Address + ":" + strconv.Itoa(task.Port)
+	}
+
+	// find all stage 1 task
+	stage1Tasks := make([]Task, 0)
+	for _, tasks := range addressTaskMap {
+		for _, t := range tasks {
+			if t.Stage == 1 {
+				stage1Tasks = append(stage1Tasks, t)
+			}
+		}
+	}
+
+	// sort stage 1 tasks by index
+	sort.Slice(stage1Tasks, func(i, j int) bool {
+		return stage1Tasks[i].Index < stage1Tasks[j].Index
+	})
+
+	for _, task := range stage2Tasks {
+		missing := false
+		for _, address := range missingAddresses {
+			if task.Address == address {
+				missing = true
+				// update first task results with new address
+				parts := strings.Split(task.Message, ",")
+				task.Message = fmt.Sprintf("%s,%s,%d,%s,%s,%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
+				stage2Addresses[task.Index] = scheduleTask(task.Message, task.Stage, task.Index, true)
+				// find previous stage address
+				previousStageAddr := stage1Tasks[task.Index].Address + ":" + workerPort
+				conn, err := net.Dial("udp", previousStageAddr)
+				if err != nil {
+					fmt.Println("Error connecting to worker:", err)
+					continue
+				}
+				// Send new next stage message
+				stage2AddressesArr := []string{stage2Addresses[task.Index]}
+				_, err = conn.Write([]byte(fmt.Sprintf("Next,1,%d,%v", task.Index, stage2AddressesArr)))
+				if err != nil {
+					fmt.Println("Error sending message:", err)
+					conn.Close()
+					continue
+				}
+				conn.Close()
+				break
+			}
+		}
+		if !missing {
+			// update next stage in the message of all stage 2 tasks
+			workerAddr := fmt.Sprintf("%s:%s", task.Address, workerPort)
+			conn, err := net.Dial("udp", workerAddr)
+			if err != nil {
+				fmt.Println("Error connecting to worker:", err)
+				continue
+			}
+			// Send new next stage message
+			_, err = conn.Write([]byte(fmt.Sprintf("Next,2,%d,%v", task.Index, stage3Addresses)))
+			if err != nil {
+				fmt.Println("Error sending message:", err)
+				conn.Close()
+				continue
+			}
+			conn.Close()
+		}
+	}
+
+	for address := range addressTaskMap {
+		if _, exists := response[address]; !exists {
+			delete(addressTaskMap, address)
+		}
+	}
 
     cluster = response
 }
 
-func findMissingAddresses(oldMap, newMap map[string]NodeInfo) []string {
+func findMissingAddresses(oldMap, newMap map[string]string) []string {
     var missingAddresses []string
     for address := range oldMap {
         if _, exists := newMap[address]; !exists {
@@ -174,7 +289,7 @@ func findMissingAddresses(oldMap, newMap map[string]NodeInfo) []string {
     return missingAddresses
 }
 
-func mapsEqual(a, b map[string]global.NodeInfo) bool {
+func mapsEqual(a, b map[string]string) bool {
     if len(a) != len(b) {
         return false
     }
@@ -208,16 +323,13 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr) {
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
-		return ""
+		return
 	}
 	
 	log.WriteString(fmt.Sprintf("Task completed: stage=%d, index=%d\n", stage, index))
 	log.Close()
 
     address := strings.Split(workerAddr.IP.String(), ":")[0]
-
-    clusterLock.Lock()
-    defer clusterLock.Unlock()
 
     if tasks, exists := addressTaskMap[address]; exists {
         for i, task := range tasks {
@@ -230,11 +342,8 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr) {
         if len(addressTaskMap[address]) == 0 {
             delete(addressTaskMap, address)
             fmt.Printf("All tasks completed for address: %s\n", address)
+			sendCompletionMessage()
         }
-    }
-
-	if len(addressTaskMap) == 0 {
-        sendCompletionMessage()
     }
 }
 
@@ -242,7 +351,7 @@ func sendCompletionMessage() {
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
-		return ""
+		return
 	}
 	
 	log.WriteString("All tasks completed\n")
@@ -265,7 +374,7 @@ func sendCompletionMessage() {
 func processClientRequest(message string) {
     parts := strings.Split(message, " ")
     if len(parts) != 7 {
-        return "Error: Invalid message format"
+        return
     }
 
     op1Exe := parts[0]
@@ -278,13 +387,13 @@ func processClientRequest(message string) {
 
     numTasksInt, err := strconv.Atoi(numTasks)
     if err != nil {
-        return "Error: Invalid numTasks value"
+        return
     }
 
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
-		return ""
+		return
 	}
 	
 	log.WriteString(fmt.Sprintf("Received request: %s\n", message))
@@ -331,14 +440,21 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
 		return ""
 	}
 	
-	log.WriteString(fmt.Sprintf("Scheduling task: %s\n", message))
+	log.WriteString(fmt.Sprintf("Scheduling task: stage=%d, index=%d\n", stage, index))
 	log.Close()
 
 	// Find the address with the least workload
 	var leastLoadedAddress string
     minWorkload := int(^uint(0) >> 1) // Max int value
 
-    for address := range cluster {
+    addresses := make([]string, 0, len(cluster))
+	for address := range cluster {
+		addresses = append(addresses, address)
+	}
+
+	sort.Strings(addresses)
+
+	for _, address := range addresses {
         workload := len(addressTaskMap[address])
         if workload < minWorkload {
             minWorkload = workload
@@ -351,7 +467,7 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
     }
 
 	// Send the message to the worker
-    workerAddr := fmt.Sprintf("%s:%d", leastLoadedAddress, workerPort)
+    workerAddr := fmt.Sprintf("%s:%s", leastLoadedAddress, workerPort)
     conn, err := net.Dial("udp", workerAddr)
     if err != nil {
         return ""
@@ -386,13 +502,14 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
     }
 
 	// Add the task to addressTaskMap
-    taskPortPair := TaskPortPair{
+    taskPortPair := Task{
         Message: message,
         Port:    port,
 		Stage:   stage,
 		Index:   index,
+		Address: leastLoadedAddress,
     }
     addressTaskMap[leastLoadedAddress] = append(addressTaskMap[leastLoadedAddress], taskPortPair)
 
-    return leastLoadedAddress + ":" + port
+    return leastLoadedAddress + ":" + strconv.Itoa(port)
 }
