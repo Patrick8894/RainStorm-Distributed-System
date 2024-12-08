@@ -234,8 +234,14 @@ func startTaskServerStage1(port int, params []string) {
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
 
+	leaderUdpAddr, err := net.ResolveUDPAddr("udp", leaderAddr)
+	if err != nil {
+		fmt.Printf("Error resolving UDP address: %v\n", err)
+		return
+	}
+
 	logMessage := fmt.Sprintf("[Log] 1 %s", taskNo)
-    _, err = conn.WriteToUDP([]byte(logMessage), leaderPort)
+    _, err = conn.WriteToUDP([]byte(logMessage), leaderUdpAddr)
     if err != nil {
         fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
     }
