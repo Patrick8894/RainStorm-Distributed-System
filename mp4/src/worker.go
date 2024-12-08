@@ -457,6 +457,7 @@ func startTaskServerStage2(port int, params []string) {
 				}
 				nextStageAddrMutex.Unlock()
 			}
+			continue
 		}
 
 		fmt.Printf("Processing request: %s\n", request)
