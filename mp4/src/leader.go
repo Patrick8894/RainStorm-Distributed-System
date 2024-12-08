@@ -79,7 +79,7 @@ func main() {
         if strings.HasPrefix(message, "[Log]") {
             // worker send ACK message
             fmt.Println("Handling worker message", message)
-            handleLogMessage(message, clientAddr)
+            handleLogMessage(message, clientAddr, conn)
         } else {
             if len(addressTaskMap) == 0 {
                 fmt.Println("Processing client request", clientAddr)
@@ -303,7 +303,7 @@ func mapsEqual(a, b map[string]string) bool {
     return true
 }
 
-func handleLogMessage(message string, workerAddr *net.UDPAddr) {
+func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn) {
     parts := strings.Fields(message)
     if len(parts) != 3 {
         fmt.Println("Invalid log message format")
@@ -346,12 +346,12 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr) {
         if len(addressTaskMap[address]) == 0 {
             delete(addressTaskMap, address)
             fmt.Printf("All tasks completed for address: %s\n", address)
-			sendCompletionMessage()
+			sendCompletionMessage(conn)
         }
     }
 }
 
-func sendCompletionMessage() {
+func sendCompletionMessage(conn *net.UDPConn) {
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file %s: %v\n", logFile, err)
@@ -361,15 +361,8 @@ func sendCompletionMessage() {
 	log.WriteString("All tasks completed\n")
 	log.Close()
 
-    conn, err := net.DialUDP("udp", nil, ClientAddr)
-    if err != nil {
-        fmt.Println("Error connecting to client:", err)
-        return
-    }
-    defer conn.Close()
-
     message := "All tasks completed"
-    _, err = conn.Write([]byte(message))
+    _, err = conn.WriteToUDP([]byte(message), ClientAddr)
     if err != nil {
         fmt.Println("Error sending completion message:", err)
     }
