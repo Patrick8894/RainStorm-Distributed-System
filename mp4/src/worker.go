@@ -156,9 +156,6 @@ func startTaskServerStage1(port int, params []string) {
 	})
 	defer conn.Close()
 
-	timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
-	conn.SetReadDeadline(time.Now().Add(timeoutDuration))
-
     go handleStage1Acks(ID, ackMap, conn)
 
 	go handleStage1resend(ID, ackMap, conn)
@@ -421,9 +418,6 @@ func startTaskServerStage2(port int, params []string) {
         return
     }
     defer conn.Close()
-
-	timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
-	conn.SetReadDeadline(time.Now().Add(timeoutDuration))
 
 	go handleStage2Acks(ID, ackMap, ackedFilename, taskNo, conn)
 
