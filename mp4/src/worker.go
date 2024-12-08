@@ -256,6 +256,7 @@ func handleStage1Acks(ID string, ackMap map[string]int) {
         }
 
         ack := string(ackBuffer[:n])
+		fmt.Printf("Received ACK: %s\n", ack)
         parts := strings.SplitN(ack, "@", 2)
         if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
             fmt.Printf("Invalid ACK received: %s\n", ack)
