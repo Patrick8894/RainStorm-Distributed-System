@@ -429,7 +429,7 @@ func startTaskServerStage2(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
-        n, addr, err := conn.ReadFromUDP(buffer)
+        n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
             fmt.Println("Error reading from UDP:", err)
             continue
@@ -438,7 +438,7 @@ func startTaskServerStage2(port int, params []string) {
         request := string(buffer[:n])
         fmt.Printf("Received request: %s\n", request)
 
-		if request == "END_OF_TASK" {
+		if strings.HasPrefix(request, "END_OF_TASK") {
 			endOfTask = true
 			nextStageAddrMutex.Lock()
 			if len(ackMap) == 0 {
@@ -460,7 +460,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
 		if _, exists := processInput[request]; exists {
-			conn.WriteToUDP([]byte("ACK@" + request), addr)
+			conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
 			continue
 		}
 
@@ -523,13 +523,13 @@ func startTaskServerStage2(port int, params []string) {
 
 		// Send ACK to previous stage
 		ackMessage := fmt.Sprintf("ACK@%s", request)
-		_, err = conn.WriteToUDP([]byte(ackMessage), addr)
+		_, err = conn.WriteToUDP([]byte(ackMessage), clientAddr)
 		if err != nil {
-			fmt.Printf("Error sending ACK to previous stage: %s\n", addr)
+			fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
 			continue
 		}
 
-        fmt.Printf("Sent ack to previus stage: %s\n", addr)
+        fmt.Printf("Sent ack to previus stage: %s\n", clientAddr)
 	}
 
 	for {
@@ -780,7 +780,7 @@ func startTaskServerStage3(port int, params []string) {
         request := string(buffer[:n])
         fmt.Printf("Received request: %s\n", request)
 
-		if request == "END_OF_TASK" {
+		if strings.HasPrefix(request, "END_OF_TASK") {
 			totalNum -= 1
 			if totalNum == 0 {
 				break
