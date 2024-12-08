@@ -194,6 +194,8 @@ func startTaskServerStage1(port int, params []string) {
 		nextStageAddrMutex.Unlock()
 	}
 
+	fmt.Printf("All data sent \n")
+
 	for {
         nextStageAddrMutex.Lock()
         if len(ackMap) == 0 {
