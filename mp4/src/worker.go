@@ -771,7 +771,7 @@ func startTaskServerStage3(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
-        n, _, err := conn.ReadFromUDP(buffer)
+        n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
             fmt.Println("Error reading from UDP:", err)
             continue
@@ -788,7 +788,7 @@ func startTaskServerStage3(port int, params []string) {
 		}
 
 		if _, exists := processedInput[request]; exists {
-			conn.WriteToUDP([]byte("ACK@" + request), &addr)
+			conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
 			continue
 		}
 
@@ -853,7 +853,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 		}
 
-		conn.WriteToUDP([]byte("ACK@" + request), &addr)
+		conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
 
         fmt.Printf("Sent processed data to HyDFS: %s\n", hydfsDestFilename)
     }
