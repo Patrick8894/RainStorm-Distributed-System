@@ -242,16 +242,22 @@ func handleStage1Acks(ID string, ackMap map[string]int) {
     ackBuffer := make([]byte, 1024)
     for {
 		nextStageAddrMutex.Lock()
-		conn, err := net.Dial("udp", nextStageAddrMap[ID][0])
+		nextStageAddr := nextStageAddrMap[ID][0]
+		nextStageAddrMutex.Unlock()
+
+		conn, err := net.Dial("udp", nextStageAddr)
 		if err != nil {
-			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageAddrMap[ID], err)
-			nextStageAddrMutex.Unlock()
+			fmt.Printf("Error connecting to next stage %s: %v\n", nextStageAddr, err)
 			continue
 		}
-		nextStageAddrMutex.Unlock()
+		
+
+		timeoutDuration := 200 * time.Millisecond // Set a very short timeout duration
+		conn.SetReadDeadline(time.Now().Add(timeoutDuration))
+
+		fmt.Printf("Waiting for ACK from next stage %s\n", nextStageAddr)
         n, err := conn.Read(ackBuffer)
         if err != nil {
-            fmt.Printf("Error receiving ACK: %v\n", err)
             continue
         }
 
