@@ -480,8 +480,13 @@ func startTaskServerStage2(port int, params []string) {
         }
 
 		fmt.Printf("Output: %s\n", output)
-
-		if string(output) == "0\n" {
+			if string(output) == "0\n" {
+				ackMessage := fmt.Sprintf("ACK@%s", request)
+			_, err = conn.WriteToUDP([]byte(ackMessage), clientAddr)
+			if err != nil {
+				fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
+				continue
+			}
 			continue
 		}
 
