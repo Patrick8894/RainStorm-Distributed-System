@@ -338,6 +338,7 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
     if tasks, exists := addressTaskMap[address]; exists {
         for i, task := range tasks {
             if task.Stage == stage && task.Index == index {
+				fmt.Printf("Task completed: stage=%d, index=%d\n", stage, index)
                 addressTaskMap[address] = append(tasks[:i], tasks[i+1:]...)
                 break
             }
@@ -346,7 +347,9 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
         if len(addressTaskMap[address]) == 0 {
             delete(addressTaskMap, address)
             fmt.Printf("All tasks completed for address: %s\n", address)
-			sendCompletionMessage(conn)
+			if len(addressTaskMap) == 0 {
+				sendCompletionMessage(conn)
+			}
         }
     }
 }
