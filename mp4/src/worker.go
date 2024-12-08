@@ -206,7 +206,6 @@ func startTaskServerStage1(port int, params []string) {
 			continue
 		}
 		ackMap[line]++
-		conn.Close()
 		nextStageAddrMutex.Unlock()
 	}
 
@@ -566,7 +565,6 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 	for {
 		n, _, err := conn.ReadFromUDP(ackBuffer)
 		if err != nil {
-			conn.Close()
 			continue
 		}
 
@@ -630,10 +628,8 @@ func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 			_, err = conn.WriteToUDP([]byte(line), nextStageUdpAddr)
 			if err != nil {
 				fmt.Printf("Error resending line: %v\n", err)
-				conn.Close()
 				continue
 			}
-			conn.Close()
 		}
 		nextStageAddrMutex.Unlock()
 		time.Sleep(2 * time.Second)
