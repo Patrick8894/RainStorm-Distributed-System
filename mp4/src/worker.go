@@ -55,6 +55,8 @@ func main() {
 			parts := strings.Split(message, ",")
 			ID := parts[1] + " " + parts[2]
 			nextStageAddrMap[ID] = strings.Fields(strings.Trim(parts[3], "[]"))
+			nextStageAddrMutex.Unlock()
+			continue
 		}
 
         // Schedule the task
@@ -147,9 +149,9 @@ func startTaskServerStage1(port int, params []string) {
 
 	ackMap := make(map[string]int)
 
-    go handleStage1Acks(ID, ackMap)
+    // go handleStage1Acks(ID, ackMap)
 
-	go handleStage1resend(ID, ackMap)
+	// go handleStage1resend(ID, ackMap)
 
     scanner := bufio.NewScanner(file)
 	if err := scanner.Err(); err != nil {
