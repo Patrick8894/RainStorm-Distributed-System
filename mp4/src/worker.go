@@ -820,6 +820,7 @@ func startTaskServerStage3(port int, params []string) {
         }
 
 		outputStr := string(output)
+		fmt.Printf("request: %s, output: %s\n", request, outputStr)
 
 		processedInput[request] = 1
 		if stateful == "stateful" {
