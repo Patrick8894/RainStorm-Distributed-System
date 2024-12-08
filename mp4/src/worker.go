@@ -235,7 +235,7 @@ func startTaskServerStage1(port int, params []string) {
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
 
 	logMessage := fmt.Sprintf("[Log] 1 %s", taskNo)
-    _, err = conn.WriteToUDP([]byte(logMessage), nextStageUdpAddr)
+    _, err = conn.WriteToUDP([]byte(logMessage), leaderPort)
     if err != nil {
         fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
     }
@@ -439,6 +439,7 @@ func startTaskServerStage2(port int, params []string) {
 				break
 			}
 			nextStageAddrMutex.Unlock()
+			continue
 		}
 
 		if strings.HasPrefix(request, "ACK") {
