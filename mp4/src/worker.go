@@ -479,6 +479,8 @@ func startTaskServerStage2(port int, params []string) {
             continue
         }
 
+		fmt.Printf("Output: %s\n", output)
+
 		if string(output) == "0" {
 			continue
 		}
