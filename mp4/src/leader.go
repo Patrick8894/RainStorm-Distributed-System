@@ -389,6 +389,7 @@ func processClientRequest(message string) {
 
     numTasksInt, err := strconv.Atoi(numTasks)
     if err != nil {
+        fmt.Println("Invalid number of tasks:", numTasks)
         return
     }
 
