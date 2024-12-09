@@ -345,6 +345,8 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 
 	remainingTasks--
 
+	fmt.Printf("Remaining tasks: %d\n", remainingTasks)
+
 	if remainingTasks == 0 {
 		clusterLock.Lock()
 		// clean up all entries in addressTaskMap
