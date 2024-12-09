@@ -50,7 +50,7 @@ func main() {
         message := string(buffer[:n])
         fmt.Println("Received message:", message)
 
-		if strings.HasPrefix(message, "NEXT_STAGE") {
+		if strings.HasPrefix(message, "Next") {
 			nextStageAddrMutex.Lock()
 			parts := strings.Split(message, ",")
 			ID := parts[1] + " " + parts[2]
@@ -334,6 +334,8 @@ func startTaskServerStage2(port int, params []string) {
 	processInput := make(map[string]int)
 	ackMap := make(map[string]int)
 
+	fmt.Printf("Recover: %s\n", recover)
+
 	if recover == "true" {
 		// Get the processed data from HyDFS
 		cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("2_%s_PROC", taskNo))
@@ -416,6 +418,8 @@ func startTaskServerStage2(port int, params []string) {
 		}
 	}
 
+	fmt.Printf("Starting UDP server on port %d\n", port)
+
 	addr := net.UDPAddr{
         Port: port,
         IP:   net.ParseIP("0.0.0.0"),
@@ -431,6 +435,8 @@ func startTaskServerStage2(port int, params []string) {
 	go handleStage2resend(ID, ackMap, conn)
 
 	endOfTask := false
+
+	fmt.Printf("Start receiving data\n")
 
 	buffer := make([]byte, 1024)
     for {
@@ -649,7 +655,8 @@ func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 	for {
 		nextStageAddrMutex.Lock()
 		for line := range ackMap {
-			hash := sha256.Sum256([]byte(line))
+			lineParts := strings.SplitN(line, "^", 2)
+			hash := sha256.Sum256([]byte(lineParts[1]))
 			hashValue := hex.EncodeToString(hash[:])
 			nextStageIndex := int(hashValue[0]) % len(nextStageAddrMap[ID])
 			nextStage := nextStageAddrMap[ID][nextStageIndex]
@@ -888,7 +895,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 
 			// Send the processed data to HyDFS
-			cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
+			cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -916,7 +923,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 		}
 
-		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
+		cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
