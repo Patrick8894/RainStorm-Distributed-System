@@ -629,8 +629,9 @@ func startTaskServerStage2(port int, params []string) {
 	}
 	nextStageAddrMutex.Unlock()
 
-	timeout := 30 * time.Second // Set the timeout duration
+	timeout := 15 * time.Second // Set the timeout duration
 	timeoutChan := time.After(timeout)
+	readTimeout := 5 * time.Second
 
 	// Wait for all ACKs
 	for {
@@ -640,9 +641,9 @@ func startTaskServerStage2(port int, params []string) {
 			return
 		default:
 			buffer := make([]byte, 1024)
+			conn.SetReadDeadline(time.Now().Add(readTimeout))
 			n, _, err := conn.ReadFromUDP(buffer)
 			if err != nil {
-				fmt.Printf("Error reading from UDP: %v\n", err)
 				continue
 			}
 			ack := string(buffer[:n])
