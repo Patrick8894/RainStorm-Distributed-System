@@ -1054,6 +1054,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 		}
 
+		fmt.Printf("Output file: %s, Hydfs file: %s\n", outputFilename, hydfsDestFilename)
 		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
 		err = cmd.Run()
 		if err != nil {
