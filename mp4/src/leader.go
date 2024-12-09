@@ -47,6 +47,14 @@ var ClientAddr *net.UDPAddr
 var logFile string = "../../mp1/data/leader.log"
 var remainingTasks int
 
+var Op1Exe string
+var Op2Exe string
+var HydfsSrcFile string
+var HydfsDestFilename string
+var NumTasks string
+var GX string
+var Stateful string
+
 func main() {
     addr := net.UDPAddr{
         Port: port,
@@ -358,6 +366,8 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 }
 
 func sendCompletionMessage(conn *net.UDPConn) {
+	exec.Command("go", "run", "log.go", Op1Exe, Op2Exe, HydfsSrcFile, HydfsDestFilename, NumTasks, GX, Stateful).Run()
+
 	fmt.Printf("All tasks completed\n")
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -390,6 +400,14 @@ func processClientRequest(message string) {
     numTasks := parts[4]
     X := parts[5]
     stateful := parts[6]
+
+	Op1Exe = op1Exe
+	Op2Exe = op2Exe
+	HydfsSrcFile = hydfsSrcFile
+	HydfsDestFilename = hydfsDestFilename
+	NumTasks = numTasks
+	GX = X
+	Stateful = stateful
 
 	tmpFile := fmt.Sprintf("/tmp/%s", hydfsDestFilename)
 

@@ -6,6 +6,8 @@ import (
     "os/exec"
 	"bufio"
 	"strings"
+	"strconv"
+	"hash/crc32"
 )
 
 func main() {
@@ -30,8 +32,9 @@ func main() {
     fmt.Printf("X: %s\n", X)
     fmt.Printf("stateful: %s\n", stateful)
 
+	totalNum, err := strconv.Atoi(numTasks)
+
 	localfilename := "/localfile"
-	outputfilename := "/outputfile"
 
 	cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localfilename, "--HyDFSfilename", hydfsSrcFile)
 	output, err := cmd.CombinedOutput()
@@ -48,51 +51,95 @@ func main() {
 		return
 	}
 
-	outputfile, err := os.Create(outputfilename)
-	if err != nil {
-		fmt.Printf("Error creating output file: %v\n", err)
-		return
-	}
-
-	state := make(map[string]int)
-
 	// read the file line by line
 	scanner := bufio.NewScanner(file)
+
+	lines := []string{}
 	for scanner.Scan() {
-		line := scanner.Text()
-		
-		cmd = exec.Command("../ops/" + op1Exe, X)
-		cmd.Stdin = strings.NewReader(line)
-		output, err = cmd.Output()
-		if err != nil {
-			fmt.Printf("Error running external program: %v\n", err)
-			continue
-		}
-
-		if strings.TrimSpace(string(output)) != "1" {
-			continue
-		}
-
-		cmd = exec.Command("../ops/" + op2Exe)
-		cmd.Stdin = strings.NewReader(line)
-		output, err = cmd.Output()
-		if err != nil {
-			fmt.Printf("Error running external program: %v\n", err)
-			continue
-		}
-
-		outputStr := string(output)
-
-		if stateful == "stateful" {
-			state[outputStr]++
-		} else {
-			outputfile.WriteString(outputStr + "\n")
-		}
+		lines = append(lines, scanner.Text())
 	}
 
-	if stateful == "stateful" {
-		for key, value := range state {
-			outputfile.WriteString(fmt.Sprintf("%s: %d\n", key, value))
+	totalLines := len(lines)
+    partitionSize := totalLines / totalNum
+    if err != nil {
+        fmt.Printf("Error converting taskNo to integer: %v\n", err)
+        return
+    }
+
+    stage2 := make(map[int][]string)
+	stage3 := make(map[int][]string)
+
+    // Partition lines into totalNum parts
+    for i := 0; i < totalNum; i++ {
+        start := i * partitionSize
+        end := start + partitionSize
+        if i == totalNum-1 {
+            end = totalLines // Ensure the last partition includes any remaining lines
+        }
+        stage2[i] = lines[start:end]
+    }
+	
+	for i := 0; i < totalNum; i++ {
+		stage2Filename := fmt.Sprintf("/tmp/2_%d_PROC", i)
+		file, err := os.Create(stage2Filename)
+
+		stage2ACKFilename := fmt.Sprintf("/tmp/2_%d_ACK", i)
+		ackFile, err := os.Create(stage2ACKFilename)
+
+		for _, line := range lines {
+			cmd = exec.Command("../ops/" + op1Exe, X)
+			cmd.Stdin = strings.NewReader(line)
+			output, err = cmd.Output()
+			if err != nil {
+				fmt.Printf("Error running external program: %v\n", err)
+				continue
+			}
+
+			if strings.TrimSpace(string(output)) != "1" {
+				continue
+			}
+
+			cmd = exec.Command("../ops/" + op2Exe)
+			cmd.Stdin = strings.NewReader(line)
+			output, err = cmd.Output()
+			if err != nil {
+				fmt.Printf("Error running external program: %v\n", err)
+				continue
+			}
+			outputStr := string(output)
+
+			file.WriteString(fmt.Sprintf("%s@%s^%s\n", line, line, outputStr))
+			ackFile.WriteString(fmt.Sprintf("%s^%s\n", line, outputStr))
+
+			// compute hash value
+			h := crc32.ChecksumIEEE([]byte(outputStr))
+			hash := int(h % uint32(totalNum))
+			stage3[hash] = append(stage3[hash], outputStr)
 		}
+
+		exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stage2Filename, "--HyDFSfilename", fmt.Sprintf("2_%d_PROC", i))
+		exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stage2ACKFilename, "--HyDFSfilename", fmt.Sprintf("2_%d_ACK", i))
+	}
+
+	for i := 0; i < totalNum; i++ {
+		state := make(map[string]int)
+
+		file, _ := os.Open(fmt.Sprintf("/tmp/3_%d_PROC", i))	
+		outputfile, _ := os.Create(fmt.Sprintf("/tmp/3_%d_OUT", i))
+		stateFile, _ := os.Open(fmt.Sprintf("/tmp/3_%d_STATE", i))
+		for _, line := range stage3[i] {
+			if stateful == "stateful" {
+				state[line]++
+			} else {
+				outputfile.WriteString(fmt.Sprintf("%s\n", line))
+			}
+			file.WriteString(fmt.Sprintf("%s\n", line))
+		}
+		if stateful == "stateful" {
+			for k, v := range state {
+				stateFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
+			}
+		}
+		exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_PROC", i), "--HyDFSfilename", hydfsDestFilename)
 	}
 }
