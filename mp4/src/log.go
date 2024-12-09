@@ -8,6 +8,8 @@ import (
 	"strings"
 	"strconv"
 	"hash/crc32"
+	"math/rand"
+	"time"
 )
 
 func main() {
@@ -118,6 +120,13 @@ func main() {
 		exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stage2ACKFilename, "--HyDFSfilename", fmt.Sprintf("2_%d_ACK", i))
 	}
 
+	rand.Seed(time.Now().UnixNano())
+    for i := 0; i < totalNum; i++ {
+        rand.Shuffle(len(stage3[i]), func(j, k int) {
+            stage3[i][j], stage3[i][k] = stage3[i][k], stage3[i][j]
+        })
+    }
+
 	for i := 0; i < totalNum; i++ {
 		state := make(map[string]int)
 
@@ -129,6 +138,7 @@ func main() {
 				state[line]++
 			} else {
 				outputfile.WriteString(fmt.Sprintf("%s\n", line))
+				emptyFile.WriteString(fmt.Sprintf("%s\n", line))
 			}
 			file.WriteString(fmt.Sprintf("%s\n", line))
 		}
@@ -137,9 +147,7 @@ func main() {
 				stateFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
 				emptyFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
 			}
-		} else {
-			emptyFile.WriteString(fmt.Sprintf("%s\n", line))
-		}
+		} 
 	}
 	cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", emptyFilename, "--HyDFSfilename", hydfsDestFilename)
 }
