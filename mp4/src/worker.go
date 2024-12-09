@@ -288,6 +288,7 @@ func startTaskServerStage1(port int, params []string) {
 func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
     ackBuffer := make([]byte, 1024)
     for {
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
         n, _, err := conn.ReadFromUDP(ackBuffer)
         if err != nil {
             continue
