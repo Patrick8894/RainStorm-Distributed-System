@@ -138,7 +138,7 @@ func startTaskServerStage1(port int, params []string) {
 	fmt.Printf("Next stage for task %s: %v\n", taskNo, nextStageAddrMap[ID])
 	nextStageAddrMutex.Unlock()
 
-    localFilename := fmt.Sprintf("%s/1_%s", os.Getenv("HOME"), taskNo)
+    localFilename := fmt.Sprintf("%s/tmp/1_%s", os.Getenv("HOME"), taskNo)
     cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localFilename, "--HyDFSfilename", hydfsSrcFile)
 
     err = cmd.Run()
@@ -383,8 +383,8 @@ func startTaskServerStage2(port int, params []string) {
 
 	seen := make(map[string]int)
 
-	processedFilename := fmt.Sprintf("%s/2_%s_PROC", os.Getenv("HOME"), taskNo)
-	ackedFilename := fmt.Sprintf("%s/2_%s_ACKED", os.Getenv("HOME"), taskNo)
+	processedFilename := fmt.Sprintf("%s/tmp/2_%s_PROC", os.Getenv("HOME"), taskNo)
+	ackedFilename := fmt.Sprintf("%s/tmp/2_%s_ACKED", os.Getenv("HOME"), taskNo)
 
     // Log the received parameters
     fmt.Printf("Starting task server stage 2 on port %d with params: opFile1=%s, opFile2=%s, taskNo=%s, totalNum=%s, nextStageList=%v, recover=%s\n",
@@ -807,10 +807,10 @@ func startTaskServerStage3(port int, params []string) {
         port, opFile, stateful, taskNo, totalNum, hydfsDestFilename, recover)
 
 	processedInput := make(map[string]int)
-	processedFilename := fmt.Sprintf("%s/3_%s_PROC", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
+	processedFilename := fmt.Sprintf("%s/tmp/3_%s_PROC", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
 	state := make(map[string]int)
-	stateFilename := fmt.Sprintf("%s/3_%s_STATE", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
-	outputFilename := fmt.Sprintf("%s/3_%s_OUTPUT", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
+	stateFilename := fmt.Sprintf("%s/tmp/3_%s_STATE", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
+	outputFilename := fmt.Sprintf("%s/tmp/3_%s_OUTPUT", os.Getenv("HOME"), taskNo) // Use ~/ as the start of the file path
 
 	if recover == "true" {
 		// Get the processed data from HyDFS
@@ -1046,6 +1046,7 @@ func startTaskServerStage3(port int, params []string) {
 
 		for key := range processedInput {
 			lineParts := strings.Split(key, "^")
+			fmt.Printf("Writing to file: %s, %s\n", outputFilename, lineParts[1])
 			_, err = file.WriteString(lineParts[1] + "\n")
 			if err != nil {
 				fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
