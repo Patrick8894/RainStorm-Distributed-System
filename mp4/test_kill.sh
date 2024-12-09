@@ -1,4 +1,4 @@
-host="bohaowu2@fa24-cs425-6606.cs.illinois.edu"
+host="bohaowu2@fa24-cs425-6601.cs.illinois.edu"
 ssh "$host" << 'EOF'
 PORT=8091
 PID=$(lsof -t -i :${PORT})
@@ -14,7 +14,7 @@ fi
 EOF
 echo "Execute ssh $host and kill worker with port" 
 
-host="bohaowu2@fa24-cs425-6606.cs.illinois.edu"
+host="bohaowu2@fa24-cs425-6601.cs.illinois.edu"
 ssh "$host" << 'EOF'
 PORT=8081
 PID=$(lsof -t -i :${PORT})
