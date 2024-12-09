@@ -240,6 +240,7 @@ func startTaskServerStage1(port int, params []string) {
 
 	// wait for all ACKs
 	for {
+		fmt.Printf("Waiting for all ACKs\n")
 		if time.Now().After(timeoutTime) {
 			fmt.Println("Timeout reached, exiting loop.")
 			break
@@ -291,6 +292,7 @@ func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
 		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
         n, _, err := conn.ReadFromUDP(ackBuffer)
         if err != nil {
+			fmt.Printf("Error reading from UDP: %v\n", err)
             continue
         }
 
