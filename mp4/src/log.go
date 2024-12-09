@@ -4,6 +4,8 @@ import (
     "fmt"
     "os"
     "os/exec"
+	"bufio"
+	"strings"
 )
 
 func main() {
@@ -60,7 +62,7 @@ func main() {
 		line := scanner.Text()
 		
 		cmd = exec.Command("../ops/" + op1Exe, X)
-		cmd.Stdin = strings.NewReader(request)
+		cmd.Stdin = strings.NewReader(line)
 		output, err = cmd.Output()
 		if err != nil {
 			fmt.Printf("Error running external program: %v\n", err)
@@ -79,10 +81,12 @@ func main() {
 			continue
 		}
 
+		outputStr := string(output)
+
 		if stateful == "stateful" {
-			state[output]++
+			state[outputStr]++
 		} else {
-			outputfile.WriteString(output + "\n")
+			outputfile.WriteString(outputStr + "\n")
 		}
 	}
 
