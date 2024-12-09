@@ -598,7 +598,7 @@ func startTaskServerStage2(port int, params []string) {
 	if err != nil {
 		fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
 	}
-	fmt.Printf("End of task, process input number: %d\n", len(processInput))
+	fmt.Printf("End of task, process input number: %d\n", len(seen))
 }
 
 func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, taskNo string, ack string) {
