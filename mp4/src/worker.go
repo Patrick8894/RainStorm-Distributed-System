@@ -234,15 +234,24 @@ func startTaskServerStage1(port int, params []string) {
 	ackMap[endMessage]++
 	nextStageAddrMutex.Unlock()
 
+	timeout := 30 * time.Second // Set the timeout duration
+	timeoutChan := time.After(timeout)
+
 	// wait for all ACKs
 	for {
-		nextStageAddrMutex.Lock()
-		if len(ackMap) == 0 {
+		select {
+		case <-timeoutChan:
+			fmt.Println("Timeout reached, exiting loop.")
+			return
+		default:
+			nextStageAddrMutex.Lock()
+			if len(ackMap) == 0 {
+				nextStageAddrMutex.Unlock()
+				break
+			}
 			nextStageAddrMutex.Unlock()
-			break
+			time.Sleep(1 * time.Second)
 		}
-		nextStageAddrMutex.Unlock()
-		time.Sleep(1 * time.Second)
 	}
 
 	nextStageAddrMutex.Lock()
@@ -620,16 +629,29 @@ func startTaskServerStage2(port int, params []string) {
 	}
 	nextStageAddrMutex.Unlock()
 
+	timeout := 30 * time.Second // Set the timeout duration
+	timeoutChan := time.After(timeout)
+
 	// Wait for all ACKs
 	for {
-		buffer := make([]byte, 1024)
-		n, _, _ := conn.ReadFromUDP(buffer)		
-		ack := string(buffer[:n])
-		fmt.Printf("Received ACK: %s\n", ack)
-		if strings.HasPrefix(ack, "ACK") {
-			handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
-			if len(ackMap) == 0 {
-				break
+		select {
+		case <-timeoutChan:
+			fmt.Println("Timeout reached, exiting loop.")
+			return
+		default:
+			buffer := make([]byte, 1024)
+			n, _, err := conn.ReadFromUDP(buffer)
+			if err != nil {
+				fmt.Printf("Error reading from UDP: %v\n", err)
+				continue
+			}
+			ack := string(buffer[:n])
+			fmt.Printf("Received ACK: %s\n", ack)
+			if strings.HasPrefix(ack, "ACK") {
+				handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
+				if len(ackMap) == 0 {
+					break
+				}
 			}
 		}
 	}
