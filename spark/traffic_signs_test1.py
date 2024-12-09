@@ -16,7 +16,7 @@ def filter_by_pattern(input_file, output_file, pattern):
 
     # Filter rows where any column contains the pattern
     filtered_df = df.filter(
-        df.columns[1].contains(pattern)
+        df["Sign_Type"].contains(pattern)
     ).select("OBJECTID", "Sign_Type")
 
     # Save results to output file

@@ -51,4 +51,4 @@ if __name__ == "__main__":
     # Example usage for Task 2
     # TA provides Sign_Post type X = "Punched Telespar"
     sign_post_type = "Punched Telespar"
-    count_categories_by_sign_post("~/Traffic_Signs_1000.csv", "category_counts_spark.csv", sign_post_type)
+    count_categories_by_sign_post("TrafficSigns_1000.csv", "category_counts_spark.csv", sign_post_type)
