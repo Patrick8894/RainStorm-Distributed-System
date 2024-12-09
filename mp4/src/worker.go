@@ -1048,12 +1048,22 @@ func startTaskServerStage3(port int, params []string) {
 		}
 
 		fmt.Printf("Output file: %s, Hydfs file: %s\n", outputFilename, hydfsDestFilename)
+		// cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
+		// err = cmd.Run()
+		// if err != nil {
+		// 	fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+		// 	return
+		// }
 		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
-		err = cmd.Run()
+
+		output, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+			fmt.Printf("Command output: %s\n", string(output))
 			return
 		}
+
+		fmt.Printf("Command output: %s\n", string(output))
 	}
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
