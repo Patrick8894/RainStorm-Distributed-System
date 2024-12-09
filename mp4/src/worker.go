@@ -591,19 +591,27 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-		_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
+		_, err = conn.WriteToUDP([]byte(endMessage + "^" + nextStage), nextStageUdpAddr)
 		if err != nil {
 			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
 			continue
 		}
-
-		_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
-		if err != nil {
-			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
-			continue
-		}
+		ackMap[endMessage + "^" + nextStage]++
 	}
 	nextStageAddrMutex.Unlock()
+
+	// Wait for all ACKs
+	for {
+		conn.readFromUDP(buffer)
+		ack := string(buffer[:n])
+		fmt.Printf("Received ACK: %s\n", ack)
+		if strings.HasPrefix(ack, "ACK") {
+			handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
+			if len(ackMap) == 0 {
+				break
+			}
+		}
+	}
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
 
@@ -708,7 +716,8 @@ func startTaskServerStage3(port int, params []string) {
     recover := strings.TrimSpace(params[5])
 
 	totalNum, err := strconv.Atoi(totalNumstr)
-	totalNum *= 2
+
+	receivedEndOfTask := make(map[string]int)
 
 	// Log the received parameters
     fmt.Printf("Starting task server stage 3 on port %d with params: opFile=%s, stateful=%s, taskNo=%s, totalNum=%s, hydfsDestFilename=%s, recover=%s\n",
@@ -839,8 +848,8 @@ func startTaskServerStage3(port int, params []string) {
         fmt.Printf("Received request: %s\n", request)
 
 		if strings.HasPrefix(request, "END_OF_TASK") {
-			totalNum -= 1
-			if totalNum == 0 {
+			receivedEndOfTask[request]++
+			if receivedEndOfTask == totalNum {
 				break
 			}
 			continue
