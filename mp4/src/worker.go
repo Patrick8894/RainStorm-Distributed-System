@@ -350,8 +350,9 @@ func startTaskServerStage2(port int, params []string) {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
-			processInput[line]++
-			ackMap[line]++
+			parts := strings.SplitN(line, "@", 2)
+			processInput[parts[0]]++
+			ackMap[parts[1]]++
 		}
 
 		file.Close()
@@ -507,7 +508,7 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-		_, err = file.WriteString(fmt.Sprintf("%s\n", request))
+		_, err = file.WriteString(fmt.Sprintf("%s@%s\n", request, request + "^" + string(output)))
         if err != nil {
             fmt.Printf("Error writing to file %s: %v\n", processedFilename, err)
             continue
@@ -523,7 +524,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
 		// Hash the response to determine the next stage
-        hash := sha256.Sum256([]byte(request))
+        hash := sha256.Sum256([]byte(request + "^" + string(output)))
         hashValue := hex.EncodeToString(hash[:])
         nextStageIndex := int(hashValue[0]) % len(nextStageList)
 
@@ -535,7 +536,7 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-		_, err = conn.WriteToUDP([]byte(request), nextStageUdpAddr)
+		_, err = conn.WriteToUDP([]byte(request + "^" + string(output)), nextStageUdpAddr)
         if err != nil {
             fmt.Printf("Error sending response to next stage %s: %v\n", nextStageAddrMap[ID][nextStageIndex], err)
             nextStageAddrMutex.Unlock()
@@ -815,9 +816,11 @@ func startTaskServerStage3(port int, params []string) {
 			continue
 		}
 
+		parts := strings.Split(request, "^")
+
 		processedInput[request] = 1
 		if stateful == "stateful" {
-			state[request] += 1
+			state[parts[1]] += 1
 		}
 
 		file, err := os.Create(processedFilename)
@@ -842,7 +845,7 @@ func startTaskServerStage3(port int, params []string) {
 				continue
 			}
 
-			_, err = file.WriteString(request + "\n")
+			_, err = file.WriteString(parts[1] + "\n")
 			if err != nil {
 				fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
 				continue
