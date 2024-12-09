@@ -153,6 +153,8 @@ func updateMembership() {
 	clusterLock.Lock()
 	defer clusterLock.Unlock()
 
+	fmt.Printf("Updating membership\n")
+
     if mapsEqual(response, cluster) {
         return
     }
@@ -186,6 +188,7 @@ func updateMembership() {
 		for j := 0; j < len(missingAddresses); j++ {
 			if task.Address == missingAddresses[j] {
 				address := scheduleTask(task.Message, task.Stage, task.Index, true)
+				fmt.Printf("Rescheduling task: %s\n to address: %s\n", task.Message, address)
 				stage3Addresses[task.Index] = address
 				break
 			}
@@ -236,6 +239,7 @@ func updateMembership() {
 				parts := strings.Split(task.Message, "^")
 				task.Message = fmt.Sprintf("%s^%s^%s^%d^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
 				stage2Addresses[task.Index] = scheduleTask(task.Message, task.Stage, task.Index, true)
+				fmt.Printf("Rescheduling task: %s\n to address: %s\n", task.Message, stage2Addresses[task.Index])
 				// find previous stage address
 				previousStageAddr := stage1Tasks[task.Index].Address + ":" + workerPort
 				conn, err := net.Dial("udp", previousStageAddr)
