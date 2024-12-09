@@ -11,3 +11,4 @@ client
 worker
 leader
 mp3/data/*
+*.csv
