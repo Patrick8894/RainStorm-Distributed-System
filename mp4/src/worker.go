@@ -329,7 +329,6 @@ func handleStage1resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
 			_, err := conn.WriteToUDP([]byte(line), nextStageUdpAddr)
 			if err != nil {
 				fmt.Printf("Error resending line: %v\n", err)
-				nextStageAddrMutex.Unlock()
 				continue
 			}
 		}
