@@ -524,7 +524,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
 		// Hash the response to determine the next stage
-        hash := sha256.Sum256([]byte(request + "^" + string(output)))
+        hash := sha256.Sum256([]byte(string(output)))
         hashValue := hex.EncodeToString(hash[:])
         nextStageIndex := int(hashValue[0]) % len(nextStageList)
 
