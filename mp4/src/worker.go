@@ -231,6 +231,21 @@ func startTaskServerStage1(port int, params []string) {
 		nextStageAddrMutex.Unlock()
 		return
 	}
+	ackMap[endMessage]++
+	nextStageAddrMutex.Unlock()
+
+	// wait for all ACKs
+	for {
+		nextStageAddrMutex.Lock()
+		if len(ackMap) == 0 {
+			nextStageAddrMutex.Unlock()
+			break
+		}
+		nextStageAddrMutex.Unlock()
+		time.Sleep(1 * time.Second)
+	}
+
+	nextStageAddrMutex.Lock()
 
 	fmt.Printf("Sending end of task message to next stage %s\n", nextStageAddrMap[ID][0])
 
@@ -854,7 +869,7 @@ func startTaskServerStage3(port int, params []string) {
 				fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
 				continue
 			}
-			
+
 			receivedEndOfTask[request]++
 			if len(receivedEndOfTask) == totalNum {
 				break
