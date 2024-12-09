@@ -242,7 +242,7 @@ func startTaskServerStage1(port int, params []string) {
 		select {
 		case <-timeoutChan:
 			fmt.Println("Timeout reached, exiting loop.")
-			return
+			break
 		default:
 			nextStageAddrMutex.Lock()
 			if len(ackMap) == 0 {
@@ -638,7 +638,7 @@ func startTaskServerStage2(port int, params []string) {
 		select {
 		case <-timeoutChan:
 			fmt.Println("Timeout reached, exiting loop.")
-			return
+			break
 		default:
 			buffer := make([]byte, 1024)
 			conn.SetReadDeadline(time.Now().Add(readTimeout))
