@@ -572,6 +572,12 @@ func startTaskServerStage2(port int, params []string) {
 			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
 			continue
 		}
+
+		_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
+		if err != nil {
+			fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStage, err)
+			continue
+		}
 	}
 	nextStageAddrMutex.Unlock()
 
