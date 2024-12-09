@@ -1,0 +1,1 @@
+cd cs425g66/mp2/src && ./setup.sh && cd cs425g66/mp3/src && ./setup.sh

@@ -4,7 +4,7 @@ go run client.go app1_op1 app1_op2 TrafficSigns_50.txt 50.txt 3 "No Outlet" stat
 cd ..
 
 # wait to the middle of the steam processing
-sleep 1.5
+sleep 3
 # fail two applications
 # applicatoins use port 8091
 host="bohaowu2@fa24-cs425-6604.cs.illinois.edu"
@@ -75,3 +75,5 @@ echo "Execute ssh $host and kill mp2 with port"
 
 # Print to console any duplicate records that were discarded by a task. 
 # Print the tasks that were rescheduled to the console.
+
+# go run client.go get --localfilename ~/50.txt --HyDFSfilename 50.txt
