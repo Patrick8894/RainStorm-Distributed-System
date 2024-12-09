@@ -480,6 +480,8 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
 
 	fmt.Printf("Addresses: %v\n", addresses)
 
+	fmt.Printf("AddressTaskMap: %v\n", addressTaskMap)
+
 	for _, address := range addresses {
         workload := len(addressTaskMap[address])
         if workload < minWorkload {
