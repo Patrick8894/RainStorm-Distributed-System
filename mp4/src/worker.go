@@ -220,6 +220,8 @@ func startTaskServerStage1(port int, params []string) {
         time.Sleep(1 * time.Second)
     }
 
+	fmt.Printf("All ACKs received\n")
+
 	// Send end of task message to next stage
     endMessage := fmt.Sprintf("END_OF_TASK %s", taskNo)
 	nextStageAddrMutex.Lock()
@@ -231,6 +233,12 @@ func startTaskServerStage1(port int, params []string) {
 	}
 
     _, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
+    if err != nil {
+        fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID], err)
+        return
+    }
+
+	_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
     if err != nil {
         fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID], err)
         return
