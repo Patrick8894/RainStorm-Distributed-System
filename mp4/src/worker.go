@@ -304,12 +304,13 @@ func startTaskServerStage2(port int, params []string) {
         return
     }
 
-    opFile := strings.TrimSpace(params[0])
-    taskNo := strings.TrimSpace(params[1])
-    totalNum := strings.TrimSpace(params[2])
-	X := strings.TrimSpace(params[3])
-    nextStageListStr := strings.TrimSpace(params[4])
-    recover := strings.TrimSpace(params[5])
+	opFile1 := strings.TrimSpace(params[0])
+	opFile2 := strings.TrimSpace(params[1])
+    taskNo := strings.TrimSpace(params[2])
+    totalNum := strings.TrimSpace(params[3])
+	X := strings.TrimSpace(params[4])
+    nextStageListStr := strings.TrimSpace(params[5])
+    recover := strings.TrimSpace(params[6])
 
 
 	nextStageListStr = strings.Trim(nextStageListStr, "[]")
@@ -325,8 +326,8 @@ func startTaskServerStage2(port int, params []string) {
 	ackedFilename := fmt.Sprintf("%s/2_%s_ACKED", os.Getenv("HOME"), taskNo)
 
     // Log the received parameters
-    fmt.Printf("Starting task server stage 2 on port %d with params: opFile=%s, taskNo=%s, totalNum=%s, nextStageList=%v, recover=%s\n",
-        port, opFile, taskNo, totalNum, nextStageList, recover)
+    fmt.Printf("Starting task server stage 2 on port %d with params: opFile1=%s, opFile2=%s, taskNo=%s, totalNum=%s, nextStageList=%v, recover=%s\n",
+        port, opFile1, opFile2, taskNo, totalNum, nextStageList, recover)
 
 	processInput := make(map[string]int)
 	ackMap := make(map[string]int)
@@ -472,7 +473,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
         // Run the external program with the request as input
-        cmd := exec.Command("../ops/" + opFile, X)
+        cmd := exec.Command("../ops/" + opFile1, X)
         cmd.Stdin = strings.NewReader(request)
         output, err := cmd.Output()
         if err != nil {
@@ -480,14 +481,21 @@ func startTaskServerStage2(port int, params []string) {
             continue
         }
 
-		fmt.Printf("Output: %s\n", output)
-			if string(output) == "0\n" {
-				ackMessage := fmt.Sprintf("ACK@%s", request)
+		if string(output) == "0\n" {
+			ackMessage := fmt.Sprintf("ACK@%s", request)
 			_, err = conn.WriteToUDP([]byte(ackMessage), clientAddr)
 			if err != nil {
 				fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
 				continue
 			}
+			continue
+		}
+
+		cmd = exec.Command("../ops/" + opFile2)
+		cmd.Stdin = strings.NewReader(request)
+		output, err = cmd.Output()
+		if err != nil {
+			fmt.Printf("Error running external program: %v\n", err)
 			continue
 		}
 
@@ -807,21 +815,9 @@ func startTaskServerStage3(port int, params []string) {
 			continue
 		}
 
-		// Run the external program with the request as input
-        cmd := exec.Command("../ops/" + opFile)
-        cmd.Stdin = strings.NewReader(request)
-        output, err := cmd.Output()
-        if err != nil {
-            fmt.Printf("Error running external program: %v\n", err)
-            continue
-        }
-
-		outputStr := string(output)
-		fmt.Printf("request: %s, output: %s\n", request, outputStr)
-
 		processedInput[request] = 1
 		if stateful == "stateful" {
-			state[outputStr] += 1
+			state[request] += 1
 		}
 
 		file, err := os.Create(processedFilename)
@@ -846,13 +842,13 @@ func startTaskServerStage3(port int, params []string) {
 				continue
 			}
 
-			_, err = file.WriteString(outputStr + "\n")
+			_, err = file.WriteString(request + "\n")
 			if err != nil {
 				fmt.Printf("Error writing to file %s: %v\n", outputFilename, err)
 				continue
 			}
 
-			cmd = exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
+			cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -874,7 +870,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 
 			// Send the processed data to HyDFS
-			cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
+			cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)

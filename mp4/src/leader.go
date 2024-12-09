@@ -232,7 +232,7 @@ func updateMembership() {
 				missing = true
 				// update first task results with new address
 				parts := strings.Split(task.Message, "^")
-				task.Message = fmt.Sprintf("%s^%s^%d^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
+				task.Message = fmt.Sprintf("%s^%s^%s^%d^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
 				stage2Addresses[task.Index] = scheduleTask(task.Message, task.Stage, task.Index, true)
 				// find previous stage address
 				previousStageAddr := stage1Tasks[task.Index].Address + ":" + workerPort
@@ -425,7 +425,7 @@ func processClientRequest(message string) {
 
 	var secondTaskResults []string
     for i := 0; i < numTasksInt; i++ {
-        taskMessage := fmt.Sprintf("2^%s^%d^%s^%s^%v", op1Exe, i, numTasks, X, firstTaskResults)
+        taskMessage := fmt.Sprintf("2^%s^%s^%d^%s^%s^%v", op1Exe, op2Exe, i, numTasks, X, firstTaskResults)
         result := scheduleTask(taskMessage, 2, i, false)
 		if result == "" {
 			i--
