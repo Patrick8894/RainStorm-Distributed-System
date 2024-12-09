@@ -44,6 +44,7 @@ var clusterLock sync.Mutex
 
 var ClientAddr *net.UDPAddr
 var logFile string = "../../mp1/data/leader.log"
+var remainingTasks int
 
 func main() {
     addr := net.UDPAddr{
@@ -342,31 +343,16 @@ func handleLogMessage(message string, workerAddr *net.UDPAddr, conn *net.UDPConn
 	log.WriteString(fmt.Sprintf("Task completed: stage=%d, index=%d\n", stage, index))
 	log.Close()
 
-	for addr, tasks := range addressTaskMap {
-		for i, task := range tasks {
-			if task.Stage == stage && task.Index == index {
-				fmt.Printf("Task completed: stage=%d, index=%d\n", stage, index)
-				addressTaskMap[addr] = append(tasks[:i], tasks[i+1:]...)
-				break
-			}
-		}
-		if len(addressTaskMap[addr]) == 0 {
-			delete(addressTaskMap, addr)
-			fmt.Printf("All tasks completed for address: %s\n", addr)
-			fmt.Printf("len(addressTaskMap): %d\n", len(addressTaskMap))
-			if len(addressTaskMap) == 0 {
-				sendCompletionMessage(conn)
-			}
-		}
-	}
+	remainingTasks--
 
-	// print addressTaskMap
-	fmt.Printf("AddressTaskMap after:\n")
-	for addr, tasks := range addressTaskMap {
-		fmt.Printf("Address: %s\n", addr)
-		for _, task := range tasks {
-			fmt.Printf("Task: %s\n", task.Message)
+	if remainingTasks == 0 {
+		clusterLock.Lock()
+		// clean up all entries in addressTaskMap
+		for address := range addressTaskMap {
+			delete(addressTaskMap, address)
 		}
+		clusterLock.Unlock()
+		sendCompletionMessage(conn)
 	}
 }
 
@@ -409,6 +395,8 @@ func processClientRequest(message string) {
         fmt.Println("Invalid number of tasks:", numTasks)
         return
     }
+
+	remainingTasks = numTasksInt * 3
 
 	log, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
