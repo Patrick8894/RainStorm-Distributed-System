@@ -1,7 +1,7 @@
-cd src/ 
-go run mp3_client.go create --localfilename ~/TrafficSigns_50.txt --HyDFSfilename TrafficSigns_50.txt && \
-go run client.go app1_op1 app1_op2 TrafficSigns_50.txt 50.txt 3 "No Outlet" stateless &
-cd ..
+# cd src/ 
+# go run mp3_client.go create --localfilename ~/TrafficSigns_50.txt --HyDFSfilename TrafficSigns_50.txt && \
+# go run client.go app1_op1 app1_op2 TrafficSigns_50.txt 50.txt 3 "No Outlet" stateless &
+# cd ..
 
 # wait to the middle of the steam processing
 sleep 3
