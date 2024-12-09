@@ -481,6 +481,11 @@ func startTaskServerStage2(port int, params []string) {
 			fmt.Printf("Received end of task message\n")
 			endOfTask = true
 			nextStageAddrMutex.Lock()
+			_, err = conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
+			if err != nil {
+				fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
+				continue
+			}
 			if len(ackMap) == 0 {
 				nextStageAddrMutex.Unlock()
 				break
