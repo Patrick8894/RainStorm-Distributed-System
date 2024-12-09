@@ -163,9 +163,13 @@ func startTaskServerStage1(port int, params []string) {
 	})
 	defer conn.Close()
 
+	fmt.Printf("Starting UDP server on port %d\n", port)
+
     go handleStage1Acks(ID, ackMap, conn, endPtr)
 
 	go handleStage1resend(ID, ackMap, conn, endPtr)
+
+	fmt.Printf("Start sending data\n")
 
     scanner := bufio.NewScanner(file)
 	if err := scanner.Err(); err != nil {
@@ -177,6 +181,8 @@ func startTaskServerStage1(port int, params []string) {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
+
+	fmt.Printf("Total lines: %d\n", len(lines))
 
 	totalLines := len(lines)
 	partitionSize := totalLines / totalNum
