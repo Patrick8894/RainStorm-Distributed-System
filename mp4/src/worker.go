@@ -127,6 +127,9 @@ func startTaskServerStage1(port int, params []string) {
 	totalNum, err := strconv.Atoi(totalNumstr)
 
 	ID := fmt.Sprintf("1 %s", taskNo)
+	
+	END := false
+	endPtr := &END
 
 	nextStageAddrMutex.Lock()
 	// clean up the next stage address map
@@ -160,9 +163,9 @@ func startTaskServerStage1(port int, params []string) {
 	})
 	defer conn.Close()
 
-    go handleStage1Acks(ID, ackMap, conn)
+    go handleStage1Acks(ID, ackMap, conn, endPtr)
 
-	go handleStage1resend(ID, ackMap, conn)
+	go handleStage1resend(ID, ackMap, conn, endPtr)
 
     scanner := bufio.NewScanner(file)
 	if err := scanner.Err(); err != nil {
@@ -284,19 +287,24 @@ func startTaskServerStage1(port int, params []string) {
     }
 	nextStageAddrMutex.Unlock()
 
+	END = true
 	fmt.Printf("End of task\n")
 }
 
-func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
+func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn, endPtr *bool) {
     ackBuffer := make([]byte, 1024)
     for {
+		if *endPtr {
+			break
+		}
+
         n, _, err := conn.ReadFromUDP(ackBuffer)
         if err != nil {
             continue
         }
 
         ack := string(ackBuffer[:n])
-		fmt.Printf("Received ACK: %s\n", ack)
+		// fmt.Printf("Received ACK: %s\n", ack)
         parts := strings.SplitN(ack, "@", 2)
         if len(parts) != 2 || strings.TrimSpace(parts[0]) != "ACK" {
             fmt.Printf("Invalid ACK received: %s\n", ack)
@@ -316,9 +324,13 @@ func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
     }
 }
 
-func handleStage1resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
+func handleStage1resend(ID string, ackMap map[string]int, conn *net.UDPConn, endPtr *bool) {
 	for {
 		nextStageAddrMutex.Lock()
+		if *endPtr {
+			nextStageAddrMutex.Unlock()
+			break
+		}
 		nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][0])
 		if err != nil {
 			fmt.Printf("Error resolving UDP address: %v\n", err)
@@ -351,6 +363,8 @@ func startTaskServerStage2(port int, params []string) {
     nextStageListStr := strings.TrimSpace(params[5])
     recover := strings.TrimSpace(params[6])
 
+	END := false
+	endPtr := &END
 
 	nextStageListStr = strings.Trim(nextStageListStr, "[]")
     nextStageList := strings.Fields(nextStageListStr)
@@ -471,7 +485,7 @@ func startTaskServerStage2(port int, params []string) {
     }
     defer conn.Close()
 
-	go handleStage2resend(ID, ackMap, conn)
+	go handleStage2resend(ID, ackMap, conn, endPtr)
 
 	endOfTask := false
 
@@ -673,6 +687,7 @@ func startTaskServerStage2(port int, params []string) {
 	if err != nil {
 		fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
 	}
+	*endPtr = true
 	fmt.Printf("End of task, process input number: %d\n", len(seen))
 }
 
@@ -721,9 +736,13 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 	nextStageAddrMutex.Unlock()
 }
 
-func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn) {
+func handleStage2resend(ID string, ackMap map[string]int, conn *net.UDPConn, endPtr *bool) {
 	for {
 		nextStageAddrMutex.Lock()
+		if *endPtr {
+			nextStageAddrMutex.Unlock()
+			break
+		}
 		for line := range ackMap {
 			lineParts := strings.SplitN(line, "^", 2)
 			hash := sha256.Sum256([]byte(lineParts[1]))
