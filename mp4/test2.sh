@@ -4,7 +4,7 @@
 # cd ..
 
 # wait to the middle of the steam processing
-sleep 3
+# sleep 1.5
 # fail two applications
 # applicatoins use port 8091
 host="bohaowu2@fa24-cs425-6604.cs.illinois.edu"
