@@ -24,19 +24,17 @@ func main() {
     X := os.Args[6]
     stateful := os.Args[7]
 
-    fmt.Printf("op1_exe: %s\n", op1Exe)
-    fmt.Printf("op2_exe: %s\n", op2Exe)
-    fmt.Printf("hydfs_src_file: %s\n", hydfsSrcFile)
-    fmt.Printf("hydfs_dest_filename: %s\n", hydfsDestFilename)
-    fmt.Printf("num_tasks: %s\n", numTasks)
-    fmt.Printf("X: %s\n", X)
-    fmt.Printf("stateful: %s\n", stateful)
-
 	totalNum, err := strconv.Atoi(numTasks)
 
-	localfilename := "/localfile"
+	emptyFile := fmt.Sprintf("%s/empty", os.Getenv("HOME"))
 
-	cmd := exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localfilename, "--HyDFSfilename", hydfsSrcFile)
+	localfilename := fmt.Sprintf("%s/localfile", os.Getenv("HOME"))
+
+	os.Create(emptyFile)
+
+	cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", emptyFile, "--HyDFSfilename", hydfsDestFilename)
+
+	cmd = exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localfilename, "--HyDFSfilename", hydfsSrcFile)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error executing get: %v\n", err)
@@ -50,7 +48,6 @@ func main() {
 		fmt.Printf("Error opening local file: %v\n", err)
 		return
 	}
-
 	// read the file line by line
 	scanner := bufio.NewScanner(file)
 
@@ -83,7 +80,7 @@ func main() {
 		stage2Filename := fmt.Sprintf("/tmp/2_%d_PROC", i)
 		file, err := os.Create(stage2Filename)
 
-		stage2ACKFilename := fmt.Sprintf("/tmp/2_%d_ACK", i)
+		stage2ACKFilename := fmt.Sprintf("/tmp/2_%d_ACKED", i)
 		ackFile, err := os.Create(stage2ACKFilename)
 
 		for _, line := range lines {
@@ -139,7 +136,9 @@ func main() {
 			for k, v := range state {
 				stateFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
 			}
+			exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_STATE", i), "--HyDFSfilename", hydfsDestFilename)
+		} else {
+			exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_PROC", i), "--HyDFSfilename", hydfsDestFilename)
 		}
-		exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_PROC", i), "--HyDFSfilename", hydfsDestFilename)
 	}
 }
