@@ -232,15 +232,17 @@ func startTaskServerStage1(port int, params []string) {
 		return
 	}
 
+	fmt.Printf("Sending end of task message to next stage %s\n", nextStageAddrMap[ID][0])
+
     _, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
     if err != nil {
-        fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID], err)
+        fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID][0], err)
         return
     }
 
 	_, err = conn.WriteToUDP([]byte(endMessage), nextStageUdpAddr)
     if err != nil {
-        fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID], err)
+        fmt.Printf("Error sending end of task message to next stage %s: %v\n", nextStageAddrMap[ID][0], err)
         return
     }
 
