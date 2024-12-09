@@ -160,6 +160,8 @@ func updateMembership() {
 	// Find addresses missing in the new membership
     missingAddresses := findMissingAddresses(cluster, response)
 
+	fmt.Printf("Missing addresses: %v\n", missingAddresses)
+
 	// find all stage 3 task
 	stage3Tasks := make([]Task, 0)
 	for _, tasks := range addressTaskMap {
