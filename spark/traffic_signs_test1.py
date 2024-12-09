@@ -51,4 +51,4 @@ if __name__ == "__main__":
     # Example usage for Task 1
     # TA provides pattern X = "No Outlet"
     pattern_to_search = "No Outlet"
-    filter_by_pattern("~/Traffic_Signs_1000.csv", "filtered_output_spark.csv", pattern_to_search)
+    filter_by_pattern("Traffic_Signs_1000.csv", "filtered_output_spark.csv", pattern_to_search)
