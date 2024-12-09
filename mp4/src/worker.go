@@ -240,7 +240,6 @@ func startTaskServerStage1(port int, params []string) {
 
 	// wait for all ACKs
 	for {
-		fmt.Printf("Waiting for all ACKs\n")
 		if time.Now().After(timeoutTime) {
 			fmt.Println("Timeout reached, exiting loop.")
 			break
@@ -284,15 +283,15 @@ func startTaskServerStage1(port int, params []string) {
         fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
     }
 	nextStageAddrMutex.Unlock()
+
+	fmt.Printf("End of task\n")
 }
 
 func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
     ackBuffer := make([]byte, 1024)
     for {
-		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
         n, _, err := conn.ReadFromUDP(ackBuffer)
         if err != nil {
-			fmt.Printf("Error reading from UDP: %v\n", err)
             continue
         }
 
