@@ -533,6 +533,7 @@ func startTaskServerStage2(port int, params []string) {
         nextStageIndex := int(hashValue[0]) % len(nextStageList)
 
 		nextStageAddrMutex.Lock()
+		ackMap[request + "^" + string(output)]++
         nextStageUdpAddr, err := net.ResolveUDPAddr("udp", nextStageAddrMap[ID][nextStageIndex])
 		if err != nil {
 			fmt.Printf("Error resolving UDP address: %v\n", err)
