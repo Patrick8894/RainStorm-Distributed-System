@@ -164,6 +164,8 @@ func updateMembership() {
 
 	fmt.Printf("Missing addresses: %v\n", missingAddresses)
 
+	cluster = response
+
 	// find all stage 3 task
 	stage3Tasks := make([]Task, 0)
 	for _, tasks := range addressTaskMap {
@@ -205,7 +207,7 @@ func updateMembership() {
 			}
 		}
 	}
-	
+
 
 	// sort stage 2 tasks by index
 	sort.Slice(stage2Tasks, func(i, j int) bool {
@@ -286,8 +288,6 @@ func updateMembership() {
 			delete(addressTaskMap, address)
 		}
 	}
-
-    cluster = response
 }
 
 func findMissingAddresses(oldMap, newMap map[string]string) []string {
@@ -477,6 +477,8 @@ func scheduleTask(message string, stage int, index int, recover bool) string {
 	}
 
 	sort.Strings(addresses)
+
+	fmt.Printf("Addresses: %v\n", addresses)
 
 	for _, address := range addresses {
         workload := len(addressTaskMap[address])
