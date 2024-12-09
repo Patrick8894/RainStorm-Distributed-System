@@ -26,13 +26,13 @@ func main() {
 
 	totalNum, err := strconv.Atoi(numTasks)
 
-	emptyFile := fmt.Sprintf("%s/empty", os.Getenv("HOME"))
+	emptyFilename := fmt.Sprintf("%s/empty", os.Getenv("HOME"))
 
 	localfilename := fmt.Sprintf("%s/localfile", os.Getenv("HOME"))
 
-	os.Create(emptyFile)
+	emptyFile, _ := os.Create(emptyFilename)
 
-	cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", emptyFile, "--HyDFSfilename", hydfsDestFilename)
+	cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", emptyFilename, "--HyDFSfilename", hydfsDestFilename)
 
 	cmd = exec.Command("go", "run", "mp3_client.go", "get", "--localfilename", localfilename, "--HyDFSfilename", hydfsSrcFile)
 	output, err := cmd.CombinedOutput()
@@ -135,10 +135,11 @@ func main() {
 		if stateful == "stateful" {
 			for k, v := range state {
 				stateFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
+				emptyFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
 			}
-			exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_STATE", i), "--HyDFSfilename", hydfsDestFilename)
 		} else {
-			exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", fmt.Sprintf("/tmp/3_%d_PROC", i), "--HyDFSfilename", hydfsDestFilename)
+			emptyFile.WriteString(fmt.Sprintf("%s\n", line))
 		}
 	}
+	cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", emptyFilename, "--HyDFSfilename", hydfsDestFilename)
 }
