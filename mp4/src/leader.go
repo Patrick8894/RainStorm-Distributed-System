@@ -179,6 +179,7 @@ func updateMembership() {
 		return stage3Tasks[i].Index < stage3Tasks[j].Index
 	})
 
+	fmt.Printf("Stage 3 tasks: %v\n", stage3Tasks)
 	stage3Addresses := make([]string, len(stage3Tasks))
 	for i, task := range stage3Tasks {
 		stage3Addresses[i] = task.Address + ":" + strconv.Itoa(task.Port)
@@ -210,6 +211,7 @@ func updateMembership() {
 		return stage2Tasks[i].Index < stage2Tasks[j].Index
 	})
 
+	fmt.Printf("Stage 2 tasks: %v\n", stage2Tasks)
 	stage2Addresses := make([]string, len(stage2Tasks))
 	for i, task := range stage2Tasks {
 		stage2Addresses[i] = task.Address + ":" + strconv.Itoa(task.Port)
