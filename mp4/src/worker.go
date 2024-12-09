@@ -130,6 +130,7 @@ func startTaskServerStage1(port int, params []string) {
 
 	nextStageAddrMutex.Lock()
 	nextStageAddrMap[ID] = append(nextStageAddrMap[ID], nextStage)
+	fmt.Printf("Next stage for task %s: %v\n", taskNo, nextStageAddrMap[ID])
 	nextStageAddrMutex.Unlock()
 
     localFilename := fmt.Sprintf("%s/1_%s", os.Getenv("HOME"), taskNo)
