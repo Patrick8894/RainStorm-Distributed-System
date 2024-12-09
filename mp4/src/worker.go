@@ -493,8 +493,14 @@ func startTaskServerStage2(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
+		// set a timeout for the read operation
+		conn.SetReadDeadline(time.Now().Add(15 * time.Second))
         n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				fmt.Println("Timeout reached, exiting loop.")
+				break
+			}
             fmt.Println("Error reading from UDP:", err)
             continue
         }
@@ -906,8 +912,13 @@ func startTaskServerStage3(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
+		conn.SetReadDeadline(time.Now().Add(15 * time.Second))
         n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				fmt.Println("Timeout reached, exiting loop.")
+				break
+			}
             fmt.Println("Error reading from UDP:", err)
             continue
         }
