@@ -205,6 +205,7 @@ func updateMembership() {
 			}
 		}
 	}
+	
 
 	// sort stage 2 tasks by index
 	sort.Slice(stage2Tasks, func(i, j int) bool {
