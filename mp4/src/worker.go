@@ -244,7 +244,7 @@ func startTaskServerStage1(port int, params []string) {
 	nextStageAddrMutex.Unlock()
 
 	// find the current time
-	timeoutDuration := 15 * time.Second
+	timeoutDuration := 30 * time.Second
 	timeoutTime := time.Now().Add(timeoutDuration)
 
 	// wait for all ACKs
@@ -500,7 +500,7 @@ func startTaskServerStage2(port int, params []string) {
 	buffer := make([]byte, 1024)
     for {
 		// set a timeout for the read operation
-		conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
         n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
@@ -657,7 +657,7 @@ func startTaskServerStage2(port int, params []string) {
 	}
 	nextStageAddrMutex.Unlock()
 
-	timeoutDuration := 15 * time.Second
+	timeoutDuration := 30 * time.Second
 	timeoutTime := time.Now().Add(timeoutDuration)
 	readTimeout := 5 * time.Second
 
@@ -918,7 +918,7 @@ func startTaskServerStage3(port int, params []string) {
 
 	buffer := make([]byte, 1024)
     for {
-		conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
         n, clientAddr, err := conn.ReadFromUDP(buffer)
         if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
