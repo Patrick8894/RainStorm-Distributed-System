@@ -418,6 +418,8 @@ func startTaskServerStage2(port int, params []string) {
 			ackMap[parts[1]]++
 		}
 
+		fmt.Printf("Processed input: %d\n", len(processInput))
+
 		file.Close()
 		
 		// Get the acked data from HyDFS
@@ -581,6 +583,7 @@ func startTaskServerStage2(port int, params []string) {
 		}
 
 		processInput[request] = 1
+		fmt.Printf("Processed input: %d\n", len(processInput))
 
 		file, err := os.Create(processedFilename)
 		if err != nil {
@@ -830,6 +833,8 @@ func startTaskServerStage3(port int, params []string) {
 			processedInput[line] = 1
 		}
 
+		fmt.Printf("[Recovery]: Processed input: %d\n", len(processedInput))
+
 		file.Close()
 
 		if stateful == "stateful" {
@@ -954,6 +959,7 @@ func startTaskServerStage3(port int, params []string) {
 		parts := strings.Split(request, "^")
 
 		processedInput[request] = 1
+		fmt.Printf("Processed input: %d\n", len(processedInput))
 		if stateful == "stateful" {
 			state[parts[1]] += 1
 		}

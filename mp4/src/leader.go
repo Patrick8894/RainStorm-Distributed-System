@@ -154,7 +154,7 @@ func updateMembership() {
 	clusterLock.Lock()
 	defer clusterLock.Unlock()
 
-	fmt.Printf("Updating membership\n")
+	// fmt.Printf("Updating membership\n")
 
     if mapsEqual(response, cluster) {
         return
