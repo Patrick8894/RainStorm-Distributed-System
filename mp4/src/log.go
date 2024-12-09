@@ -144,8 +144,8 @@ func main() {
 		}
 		if stateful == "stateful" {
 			for k, v := range state {
-				stateFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
-				emptyFile.WriteString(fmt.Sprintf("%s^%d\n", k, v))
+				stateFile.WriteString(fmt.Sprintf("%s %d\n", k, v))
+				emptyFile.WriteString(fmt.Sprintf("%s %d\n", k, v))
 			}
 		} 
 	}
