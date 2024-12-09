@@ -683,7 +683,8 @@ func startTaskServerStage3(port int, params []string) {
     hydfsDestFilename := strings.TrimSpace(params[4])
     recover := strings.TrimSpace(params[5])
 
-	totalNum, err := strconv.Atoi(totalNumstr * 2)
+	totalNum, err := strconv.Atoi(totalNumstr)
+	totalNum *= 2
 
 	// Log the received parameters
     fmt.Printf("Starting task server stage 3 on port %d with params: opFile=%s, stateful=%s, taskNo=%s, totalNum=%s, hydfsDestFilename=%s, recover=%s\n",
