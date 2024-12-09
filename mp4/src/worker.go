@@ -895,7 +895,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 
 			// Send the processed data to HyDFS
-			cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
+			cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", stateFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_STATE", taskNo))
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
@@ -923,7 +923,7 @@ func startTaskServerStage3(port int, params []string) {
 			}
 		}
 
-		cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
+		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", outputFilename, "--HyDFSfilename", hydfsDestFilename)
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
