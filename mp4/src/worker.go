@@ -884,13 +884,6 @@ func startTaskServerStage3(port int, params []string) {
 			return
 		}
 
-		cmd = exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", processedFilename, "--HyDFSfilename", hydfsDestFilename)
-		err = cmd.Run()
-		if err != nil {
-			fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
-			return
-		}
-
 		if stateful == "stateful" {		
 			file, err := os.Create(stateFilename)
 			if err != nil {

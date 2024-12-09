@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sort"
+	"os/exec"
 )
 
 type State int
@@ -389,6 +390,23 @@ func processClientRequest(message string) {
     numTasks := parts[4]
     X := parts[5]
     stateful := parts[6]
+
+	tmpFile := fmt.Sprintf("/tmp/%s", hydfsDestFilename)
+
+	file, err := os.Create(tmpFile)
+	if err != nil {
+		fmt.Printf("Error creating file %s: %v\n", tmpFile, err)
+		return
+	}
+	file.Close()
+	
+	cmd := exec.Command("go", "run", "mp3_client.go", "create", "--localfilename", tmpFile, "--HyDFSfilename", hydfsDestFilename)
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("Error executing command to create file in HyDFS: %v\n", err)
+		return
+	}
+
 
     numTasksInt, err := strconv.Atoi(numTasks)
     if err != nil {
