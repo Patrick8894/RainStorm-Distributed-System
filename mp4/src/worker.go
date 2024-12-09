@@ -242,6 +242,7 @@ func startTaskServerStage1(port int, params []string) {
 		select {
 		case <-timeoutChan:
 			fmt.Println("Timeout reached, exiting loop.")
+			nextStageAddrMutex.Unlock()
 			break
 		default:
 			nextStageAddrMutex.Lock()
@@ -303,6 +304,8 @@ func handleStage1Acks(ID string, ackMap map[string]int, conn *net.UDPConn) {
         }
 
         line := parts[1]
+
+		fmt.Printf("Received ACK for line: %s\n", line)
 
 		nextStageAddrMutex.Lock()
 
@@ -649,6 +652,7 @@ func startTaskServerStage2(port int, params []string) {
 			ack := string(buffer[:n])
 			fmt.Printf("Received ACK: %s\n", ack)
 			if strings.HasPrefix(ack, "ACK") {
+				fmt.Printf("ackMap: %v\n", ackMap)
 				handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
 				if len(ackMap) == 0 {
 					break
@@ -656,6 +660,8 @@ func startTaskServerStage2(port int, params []string) {
 			}
 		}
 	}
+
+	fmt.Printf("All ACKs received\n")
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
 
@@ -680,6 +686,8 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 		fmt.Printf("Invalid ACK received: %s\n", ack)
 		return
 	}
+
+	fmt.Printf("Received ACK: %s\n", ack)
 
 	line := parts[1]
 
