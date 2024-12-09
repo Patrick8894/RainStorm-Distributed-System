@@ -234,25 +234,23 @@ func startTaskServerStage1(port int, params []string) {
 	ackMap[endMessage]++
 	nextStageAddrMutex.Unlock()
 
-	timeout := 30 * time.Second // Set the timeout duration
-	timeoutChan := time.After(timeout)
+	// find the current time
+	timeoutDuration := 15 * time.Second
+	timeoutTime := time.Now().Add(timeoutDuration)
 
 	// wait for all ACKs
 	for {
-		select {
-		case <-timeoutChan:
+		if time.Now().After(timeoutTime) {
 			fmt.Println("Timeout reached, exiting loop.")
+			break
+		}
+		nextStageAddrMutex.Lock()
+		if len(ackMap) == 0 {
 			nextStageAddrMutex.Unlock()
 			break
-		default:
-			nextStageAddrMutex.Lock()
-			if len(ackMap) == 0 {
-				nextStageAddrMutex.Unlock()
-				break
-			}
-			nextStageAddrMutex.Unlock()
-			time.Sleep(1 * time.Second)
 		}
+		nextStageAddrMutex.Unlock()
+		time.Sleep(1 * time.Second)
 	}
 
 	nextStageAddrMutex.Lock()
@@ -632,31 +630,29 @@ func startTaskServerStage2(port int, params []string) {
 	}
 	nextStageAddrMutex.Unlock()
 
-	timeout := 15 * time.Second // Set the timeout duration
-	timeoutChan := time.After(timeout)
+	timeoutDuration := 15 * time.Second
+	timeoutTime := time.Now().Add(timeoutDuration)
 	readTimeout := 5 * time.Second
 
 	// Wait for all ACKs
 	for {
-		select {
-		case <-timeoutChan:
+		if time.Now().After(timeoutTime) {
 			fmt.Println("Timeout reached, exiting loop.")
 			break
-		default:
-			buffer := make([]byte, 1024)
-			conn.SetReadDeadline(time.Now().Add(readTimeout))
-			n, _, err := conn.ReadFromUDP(buffer)
-			if err != nil {
-				continue
-			}
-			ack := string(buffer[:n])
-			fmt.Printf("Received ACK: %s\n", ack)
-			if strings.HasPrefix(ack, "ACK") {
-				fmt.Printf("ackMap: %v\n", ackMap)
-				handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
-				if len(ackMap) == 0 {
-					break
-				}
+		}
+		buffer := make([]byte, 1024)
+		conn.SetReadDeadline(time.Now().Add(readTimeout))
+		n, _, err := conn.ReadFromUDP(buffer)
+		if err != nil {
+			continue
+		}
+		ack := string(buffer[:n])
+		fmt.Printf("Received ACK: %s\n", ack)
+		if strings.HasPrefix(ack, "ACK") {
+			fmt.Printf("ackMap: %v\n", ackMap)
+			handleStage2Acks(ID, ackMap, ackedFilename, taskNo, ack)
+			if len(ackMap) == 0 {
+				break
 			}
 		}
 	}
