@@ -973,6 +973,14 @@ func startTaskServerStage3(port int, params []string) {
         }
 		file.Close()
 
+		// Send the processed data to HyDFS
+		cmd := exec.Command("go", "run", "mp3_client.go", "append", "--localfilename", processedFilename, "--HyDFSfilename", fmt.Sprintf("3_%s_PROC", taskNo))
+		err = cmd.Run()
+		if err != nil {
+			fmt.Printf("Error executing command to put file in HyDFS: %v\n", err)
+			continue
+		}
+
 		if stateful == "stateless" {
 			file, err = os.Create(outputFilename)
 			if err != nil {
