@@ -466,7 +466,7 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-		fmt.Printf("Processing request: %s\n", request)
+		// fmt.Printf("Processing request: %s\n", request)
 
 		if _, exists := processInput[request]; exists {
 			conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
@@ -552,7 +552,7 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-        fmt.Printf("Sent ack to previus stage: %s\n", clientAddr)
+        // fmt.Printf("Sent ack to previus stage: %s\n", clientAddr)
 	}
 
 	// Send end of task message to all next stages
@@ -610,7 +610,9 @@ func handleStage2Acks(ID string, ackMap map[string]int, ackedFilename string, ta
 			return
 		}
 
-		_, err = file.WriteString(line)
+		fmt.Printf("Writing to file: %s, %s\n", ackedFilename, line)
+
+		_, err = file.WriteString(line + "\n")
 		if err != nil {
 			fmt.Printf("Error writing to file %s: %v\n", ackedFilename, err)
 			nextStageAddrMutex.Unlock()
@@ -829,7 +831,7 @@ func startTaskServerStage3(port int, params []string) {
 			continue
 		}
 
-		fmt.Printf("Writing to file: %s, %s\n", processedFilename, request)
+		// fmt.Printf("Writing to file: %s, %s\n", processedFilename, request)
 
 		_, err = file.WriteString(request + "\n")
         if err != nil {
@@ -883,7 +885,7 @@ func startTaskServerStage3(port int, params []string) {
 
 		conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
 
-        fmt.Printf("Sent processed data to HyDFS: %s\n", hydfsDestFilename)
+        // fmt.Printf("Sent processed data to HyDFS: %s\n", hydfsDestFilename)
     }
 
 	if stateful == "stateful" {
