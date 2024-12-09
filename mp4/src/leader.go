@@ -242,7 +242,7 @@ func updateMembership() {
 				missing = true
 				// update first task results with new address
 				parts := strings.Split(task.Message, "^")
-				task.Message = fmt.Sprintf("%s^%s^%s^%d^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], stage3Addresses)
+				task.Message = fmt.Sprintf("%s^%s^%s^%s^%s^%s^%v", parts[0], parts[1], parts[2], parts[3], parts[4], part[5], stage3Addresses)
 				stage2Addresses[task.Index] = scheduleTask(task.Message, task.Stage, task.Index, true)
 				fmt.Printf("Rescheduling task: %s\n to address: %s\n", task.Message, stage2Addresses[task.Index])
 				// find previous stage address
