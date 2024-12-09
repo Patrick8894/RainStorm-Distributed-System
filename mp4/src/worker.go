@@ -246,6 +246,7 @@ func startTaskServerStage1(port int, params []string) {
     if err != nil {
         fmt.Printf("Error sending log message to leader %s: %v\n", leaderAddr, err)
     }
+	delete(nextStageAddrMap, ID)
 	nextStageAddrMutex.Unlock()
 }
 
@@ -579,6 +580,7 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 	}
+	delete(nextStageAddrMap, ID)
 	nextStageAddrMutex.Unlock()
 
 	leaderAddr := fmt.Sprintf("%s:%s", leader, leaderPort)
