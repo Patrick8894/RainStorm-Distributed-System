@@ -1,3 +1,4 @@
+X,Y,OBJECTID,Sign_Type,Size_,Supplement,Sign_Post,Year_Insta,Category,Notes,MUTCD,Ownership,FACILITYID,Schools,Location_Adjusted,Replacement_Zone,Sign_Text,Set_ID,FieldVerifiedDate,GlobalID
 -9822752.01226842,4887653.93470103,1,Streetname - Mast Arm,"16"" X 42""", ,Traffic Signal Mast Arm, ,Streetname, ,D3-1,Champaign,1,,AERIAL,L,Mercury Dr,1,,{14F48419-04A7-4932-A850-884CA5DC67FA}
 -9822751.72354012,4887683.30017848,2,Streetname - Mast Arm,"16"" X 42""", ,Traffic Signal Mast Arm, ,Streetname, ,D3-1,Champaign,2,,AERIAL,L,N Market St,2,,{1B72759F-4509-4810-9774-9274A034E1AA}
 -9828662.01808626,4879483.90715145,3,No Outlet,"30"" X 30""", ,Punched Telespar,2010,Warning, ,W14-2,Champaign,3,,AERIAL,E,,3,,{4AEAB974-641C-4DF8-BE0B-AE40A0221559}
