@@ -129,6 +129,8 @@ func startTaskServerStage1(port int, params []string) {
 	ID := fmt.Sprintf("1 %s", taskNo)
 
 	nextStageAddrMutex.Lock()
+	// clean up the next stage address map
+	nextStageAddrMap[ID] = []string{}
 	nextStageAddrMap[ID] = append(nextStageAddrMap[ID], nextStage)
 	fmt.Printf("Next stage for task %s: %v\n", taskNo, nextStageAddrMap[ID])
 	nextStageAddrMutex.Unlock()
