@@ -849,6 +849,12 @@ func startTaskServerStage3(port int, params []string) {
         fmt.Printf("Received request: %s\n", request)
 
 		if strings.HasPrefix(request, "END_OF_TASK") {
+			_, err = conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
+			if err != nil {
+				fmt.Printf("Error sending ACK to previous stage: %s\n", clientAddr)
+				continue
+			}
+			
 			receivedEndOfTask[request]++
 			if len(receivedEndOfTask) == totalNum {
 				break
