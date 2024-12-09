@@ -475,8 +475,6 @@ func startTaskServerStage2(port int, params []string) {
 			continue
 		}
 
-		seen[request]++
-
         // Run the external program with the request as input
         cmd := exec.Command("../ops/" + opFile1, X)
         cmd.Stdin = strings.NewReader(request)
@@ -495,6 +493,8 @@ func startTaskServerStage2(port int, params []string) {
 			}
 			continue
 		}
+
+		seen[request] = 1
 
 		cmd = exec.Command("../ops/" + opFile2)
 		cmd.Stdin = strings.NewReader(request)
