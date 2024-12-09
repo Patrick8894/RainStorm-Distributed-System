@@ -602,7 +602,8 @@ func startTaskServerStage2(port int, params []string) {
 
 	// Wait for all ACKs
 	for {
-		conn.readFromUDP(buffer)
+		buffer := make([]byte, 1024)
+		n, _, _ := conn.ReadFromUDP(buffer)		
 		ack := string(buffer[:n])
 		fmt.Printf("Received ACK: %s\n", ack)
 		if strings.HasPrefix(ack, "ACK") {
@@ -849,7 +850,7 @@ func startTaskServerStage3(port int, params []string) {
 
 		if strings.HasPrefix(request, "END_OF_TASK") {
 			receivedEndOfTask[request]++
-			if receivedEndOfTask == totalNum {
+			if len(receivedEndOfTask) == totalNum {
 				break
 			}
 			continue
