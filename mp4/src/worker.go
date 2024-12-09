@@ -322,6 +322,8 @@ func startTaskServerStage2(port int, params []string) {
 	nextStageAddrMap[ID] = nextStageList
 	nextStageAddrMutex.Unlock()
 
+	seen := make(map[string]int)
+
 	processedFilename := fmt.Sprintf("%s/2_%s_PROC", os.Getenv("HOME"), taskNo)
 	ackedFilename := fmt.Sprintf("%s/2_%s_ACKED", os.Getenv("HOME"), taskNo)
 
@@ -472,6 +474,8 @@ func startTaskServerStage2(port int, params []string) {
 			conn.WriteToUDP([]byte("ACK@" + request), clientAddr)
 			continue
 		}
+
+		seen[request]++
 
         // Run the external program with the request as input
         cmd := exec.Command("../ops/" + opFile1, X)
