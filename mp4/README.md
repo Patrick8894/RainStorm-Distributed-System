@@ -31,7 +31,8 @@ source ~/.bashrc
 
 ## Spark setting cluster
 
-1. ```
+1. 
+```
 vim $SPARK_HOME/conf/spark-env.sh
 ```
 
